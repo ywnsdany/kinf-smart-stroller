@@ -1076,13 +1076,6 @@ export default function Page() {
                   )}
                 </Button>
 
-                {/* Demo Note */}
-                <p className="text-xs text-center" style={{ color: '#8A8070' }}>
-                  {isRTL 
-                    ? '✨ أدخل أي اسم وبريد للتسجيل (محاكاة)'
-                    : '✨ Enter any name and email to sign in (demo)'
-                  }
-                </p>
               </div>
             </CardContent>
           </Card>
