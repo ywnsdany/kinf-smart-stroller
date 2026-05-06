@@ -14,23 +14,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KINFكِنف - Smart Baby Stroller System | نظام عربات الأطفال الذكي",
-  description: "KINF هو نظام ذكي لمراقبة عربات الأطفال يوفر تتبع الموقع، مراقبة البطارية، قياس الانحدار، وتنبيهات فورية لحماية طفلك. Smart Baby Stroller Control System with real-time monitoring, GPS tracking, battery alerts, and incline detection.",
-  keywords: ["KINF", "كنف", "smart stroller", "baby monitor", "عربة أطفال ذكية", "مراقبة الطفل", "GPS tracking", "baby safety"],
-  authors: [{ name: "KINF Team" }],
+  title: "KNFكنف - Smart Baby Stroller System | نظام عربات الأطفال الذكي",
+  description: "KNF هو نظام ذكي لمراقبة عربات الأطفال يوفر تتبع الموقع، مراقبة البطارية، قياس الانحدار، وتنبيهات فورية لحماية طفلك. Smart Baby Stroller Control System with real-time monitoring, GPS tracking, battery alerts, and incline detection.",
+  keywords: ["KNF", "كنف", "smart stroller", "baby monitor", "عربة أطفال ذكية", "مراقبة الطفل", "GPS tracking", "baby safety"],
+  authors: [{ name: "KNF Team" }],
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "KINFكِنف - Smart Baby Stroller System",
+    title: "KNFكنف - Smart Baby Stroller System",
     description: "نظام ذكي لمراقبة عربات الأطفال - حماية أمان طفلك",
     type: "website",
     images: ["/favicon.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "KINFكِنف - Smart Baby Stroller System",
+    title: "KNFكنف - Smart Baby Stroller System",
     description: "نظام ذكي لمراقبة عربات الأطفال - حماية أمان طفلك",
     images: ["/favicon.png"],
   },

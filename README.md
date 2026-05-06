@@ -1,7 +1,7 @@
-# KINFكِنف - Smart Baby Stroller System
+# KNFكنف - Smart Baby Stroller System
 
 <div align="center">
-  <img src="public/favicon.png" alt="KINF Logo" width="120" height="120">
+  <img src="public/favicon.png" alt="KNF Logo" width="120" height="120">
   
   <h3>نظام عربات الأطفال الذكي</h3>
   <p>Smart Baby Stroller Monitoring System</p>
@@ -15,7 +15,7 @@
 
 ## 📱 عن المشروع | About
 
-**KINFكِنف** هو نظام ذكي متكامل لمراقبة عربات الأطفال، يوفر راحة البال والأمان لكل أم وأب من خلال:
+**KNFكنف** هو نظام ذكي متكامل لمراقبة عربات الأطفال، يوفر راحة البال والأمان لكل أم وأب من خلال:
 
 - 🗺️ **تتبع الموقع** - GPS Tracking in real-time
 - 🔋 **مراقبة البطارية** - Battery monitoring with alerts
@@ -39,6 +39,11 @@
 - تحديث تلقائي كل 3-5 ثواني
 - حالة النظام (طبيعي/تحذير/خطر)
 - سجل الأحداث
+
+### 🔐 نظام تسجيل دخول
+- تسجيل دخول وهمي للتجربة
+- أنيميشن تحميل سلسة
+- ترحيب بالمستخدم
 
 ### 🔔 نظام تنبيهات
 - تنبيه انخفاض البطارية
@@ -75,14 +80,14 @@ bun run dev
 ## 📂 هيكل المشروع | Project Structure
 
 ```
-kinf/
+knf/
 ├── public/
 │   └── favicon.png       # Logo
 ├── src/
 │   ├── app/
 │   │   ├── globals.css   # Global styles & animations
 │   │   ├── layout.tsx    # Root layout
-│   │   └── page.tsx      # Main page (Landing + App)
+│   │   └── page.tsx      # Main page (Landing + Login + App)
 │   └── components/ui/    # shadcn/ui components
 ├── tailwind.config.ts
 └── package.json
@@ -93,8 +98,9 @@ kinf/
 ## 🎯 كيف يعمل | How It Works
 
 1. **حمّل التطبيق** - Download the app
-2. **اربط العربة** - Connect stroller via Bluetooth
-3. **استمتع بالأمان** - Monitor and get alerts
+2. **سجل دخولك** - Sign in with any name/email
+3. **اربط العربة** - Connect stroller via Bluetooth
+4. **استمتع بالأمان** - Monitor and get alerts
 
 ---
 
@@ -107,5 +113,7 @@ MIT License - Feel free to use for personal or commercial projects.
 <div align="center">
   Made with ❤️ for our children
   
-  **KINFكِنف** - حماية لأعز ما نملك
+  **KNFكنف** - حماية لأعز ما نملك
+  
+  © 2026
 </div>

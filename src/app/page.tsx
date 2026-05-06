@@ -36,7 +36,11 @@ import {
   Sparkles,
   Shield,
   Smartphone,
-  Bell
+  Bell,
+  User,
+  Lock,
+  LogIn,
+  Loader2
 } from 'lucide-react'
 
 // Types
@@ -58,6 +62,11 @@ interface EventLog {
   message: string
   messageAr: string
   strollerName: string
+}
+
+interface UserData {
+  name: string
+  email: string
 }
 
 // Simulated addresses
@@ -94,23 +103,23 @@ const generateRandomData = (currentData: StrollerData): StrollerData => {
   }
 }
 
-// Logo Component - Using Image
-function KINFLogo({ size = 60, showText = true }: { size?: number; showText?: boolean }) {
+// Logo Component
+function KNFLogo({ size = 60, showText = true }: { size?: number; showText?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <img 
         src="/favicon.png" 
-        alt="KINF Logo" 
+        alt="KNF Logo" 
         className="rounded-2xl"
         style={{ width: size, height: size, objectFit: 'contain' }}
       />
       {showText && (
         <div className="flex flex-col">
           <span className="text-xl font-bold tracking-wider" style={{ color: '#E8DCC0' }}>
-            KINF
+            KNF
           </span>
           <span className="text-sm" style={{ color: '#B8B0A0', fontFamily: "'Cairo', sans-serif" }}>
-            كِنف
+            كنف
           </span>
         </div>
       )}
@@ -118,7 +127,7 @@ function KINFLogo({ size = 60, showText = true }: { size?: number; showText?: bo
   )
 }
 
-// Fixed particles (no random on SSR)
+// Fixed particles
 const fixedParticles = [
   { size: 100, left: 10, top: 20, duration: 8, delay: 0 },
   { size: 80, left: 80, top: 10, duration: 10, delay: 1 },
@@ -128,11 +137,10 @@ const fixedParticles = [
   { size: 70, left: 30, top: 50, duration: 7, delay: 3 },
 ]
 
-// Animated Background Particles - Fixed values for SSR
+// Animated Background Particles
 function ParticleBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Floating circles - fixed values */}
       {fixedParticles.map((particle, i) => (
         <div
           key={i}
@@ -148,8 +156,6 @@ function ParticleBackground() {
           }}
         />
       ))}
-      
-      {/* Gradient orbs */}
       <div 
         className="absolute top-1/4 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20"
         style={{ background: 'radial-gradient(circle, #7A9A7A 0%, transparent 70%)' }}
@@ -196,12 +202,11 @@ function AnimatedSection({ children, className = '', delay = 0 }: { children: Re
 }
 
 // Feature Card Component
-function FeatureCard({ icon: Icon, title, desc, delay, language }: {
+function FeatureCard({ icon: Icon, title, desc, delay }: {
   icon: React.ElementType
   title: string
   desc: string
   delay: number
-  language: 'ar' | 'en'
 }) {
   return (
     <Card 
@@ -228,7 +233,10 @@ function FeatureCard({ icon: Icon, title, desc, delay, language }: {
 
 export default function Page() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar')
-  const [currentView, setCurrentView] = useState<'landing' | 'app'>('landing')
+  const [currentView, setCurrentView] = useState<'landing' | 'login' | 'app'>('landing')
+  const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState<UserData | null>(null)
+  const [loginForm, setLoginForm] = useState({ name: '', email: '' })
   const [strollers, setStrollers] = useState<StrollerData[]>([])
   const [eventLogs, setEventLogs] = useState<EventLog[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -256,7 +264,7 @@ export default function Page() {
     // Navigation
     home: isRTL ? 'الرئيسية' : 'Home',
     features: isRTL ? 'المميزات' : 'Features',
-    about: isRTL ? 'عن كِنف' : 'About',
+    about: isRTL ? 'عن كنف' : 'About',
     
     // Hero
     heroTitle: isRTL ? 'نظام عربات الأطفال الذكي' : 'Smart Baby Stroller System',
@@ -265,6 +273,18 @@ export default function Page() {
       : 'Protect your baby with the latest smart monitoring technology',
     getStarted: isRTL ? 'ابدأ الآن' : 'Get Started',
     learnMore: isRTL ? 'اعرف المزيد' : 'Learn More',
+    
+    // Login
+    loginTitle: isRTL ? 'تسجيل الدخول' : 'Login',
+    loginSubtitle: isRTL ? 'سجل دخولك للوصول إلى لوحة التحكم' : 'Sign in to access your dashboard',
+    nameLabel: isRTL ? 'الاسم' : 'Name',
+    namePlaceholder: isRTL ? 'أدخل اسمك' : 'Enter your name',
+    emailLabel: isRTL ? 'البريد الإلكتروني' : 'Email',
+    emailPlaceholder: isRTL ? 'أدخل بريدك الإلكتروني' : 'Enter your email',
+    loginBtn: isRTL ? 'دخول' : 'Sign In',
+    loggingIn: isRTL ? 'جاري الدخول...' : 'Signing in...',
+    welcomeBack: isRTL ? 'مرحباً بك' : 'Welcome back',
+    logout: isRTL ? 'تسجيل الخروج' : 'Logout',
     
     // Features
     featuresTitle: isRTL ? 'مميزات التطبيق' : 'App Features',
@@ -304,17 +324,17 @@ export default function Page() {
     back: isRTL ? 'العودة' : 'Back',
     
     // About
-    aboutTitle: isRTL ? 'عن كِنف' : 'About KINF',
+    aboutTitle: isRTL ? 'عن كنف' : 'About KNF',
     aboutDesc: isRTL 
-      ? 'كِنف هو نظام ذكي متكامل لمراقبة عربات الأطفال، صُمم خصيصاً لتوفير راحة البال والأمان لكل أم وأب.'
-      : 'KINF is an integrated smart system for monitoring baby strollers, designed to provide peace of mind for every parent.',
+      ? 'كنف هو نظام ذكي متكامل لمراقبة عربات الأطفال، صُمم خصيصاً لتوفير راحة البال والأمان لكل أم وأب.'
+      : 'KNF is an integrated smart system for monitoring baby strollers, designed to provide peace of mind for every parent.',
     
     // Footer
     footerRights: isRTL ? 'جميع الحقوق محفوظة' : 'All rights reserved',
     footerMade: isRTL ? 'صُنع بـ ❤️ لأطفالنا' : 'Made with ❤️ for our children',
   }
 
-  // Features for landing page
+  // Features
   const features = [
     { icon: MapPin, title: isRTL ? 'تتبع الموقع' : 'GPS Tracking', desc: isRTL ? 'تتبع موقع عربة طفلك في الوقت الفعلي' : 'Track your stroller in real-time', delay: 0 },
     { icon: Battery, title: isRTL ? 'مراقبة البطارية' : 'Battery Monitoring', desc: isRTL ? 'تنبيهات فورية عند انخفاض البطارية' : 'Instant low battery alerts', delay: 100 },
@@ -323,6 +343,31 @@ export default function Page() {
     { icon: Bell, title: isRTL ? 'تنبيهات فورية' : 'Instant Alerts', desc: isRTL ? 'إشعارات صوتية وبصرية' : 'Audio and visual notifications', delay: 400 },
     { icon: Baby, title: isRTL ? 'دعم عربات متعددة' : 'Multi-Stroller Support', desc: isRTL ? 'إدارة عدة عربات في وقت واحد' : 'Manage multiple strollers', delay: 500 },
   ]
+
+  // Handle Login
+  const handleLogin = async () => {
+    if (!loginForm.name.trim() || !loginForm.email.trim()) return
+    
+    setIsLoading(true)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    setUser({
+      name: loginForm.name,
+      email: loginForm.email
+    })
+    
+    setIsLoading(false)
+    setCurrentView('app')
+  }
+
+  // Handle Logout
+  const handleLogout = () => {
+    setUser(null)
+    setLoginForm({ name: '', email: '' })
+    setCurrentView('landing')
+  }
 
   // Play alert sound
   const playAlertSound = useCallback((type: 'warning' | 'error') => {
@@ -371,7 +416,7 @@ export default function Page() {
     setTimeout(() => setAlertPopup(null), 3000)
   }, [playAlertSound])
 
-  // Data simulation effect - EACH stroller has its own independent interval
+  // Data simulation effect
   useEffect(() => {
     const currentIds = new Set(strollers.map(s => s.id))
     intervalsRef.current.forEach((interval, id) => {
@@ -393,15 +438,11 @@ export default function Page() {
             const newData = generateRandomData(currentStroller)
             
             if (currentStroller.battery > 15 && newData.battery <= 15) {
-              const msgAr = t.lowBattery
-              const msgEn = 'Low battery!'
-              addEventLog('warning', msgEn, msgAr, stroller.name)
-              showAlert(msgAr, 'warning')
+              addEventLog('warning', 'Low battery!', t.lowBattery, stroller.name)
+              showAlert(t.lowBattery, 'warning')
             } else if (Math.abs(currentStroller.incline) < 20 && Math.abs(newData.incline) >= 20) {
-              const msgAr = t.dangerousIncline
-              const msgEn = 'Dangerous incline!'
-              addEventLog('error', msgEn, msgAr, stroller.name)
-              showAlert(msgAr, 'error')
+              addEventLog('error', 'Dangerous incline!', t.dangerousIncline, stroller.name)
+              showAlert(t.dangerousIncline, 'error')
             }
             
             return prev.map(s => s.id === stroller.id ? newData : s)
@@ -514,7 +555,7 @@ export default function Page() {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 md:h-20">
-              <KINFLogo size={48} />
+              <KNFLogo size={48} />
               
               {/* Desktop Menu */}
               <div className="hidden md:flex items-center gap-8">
@@ -537,7 +578,7 @@ export default function Page() {
                 <Button 
                   className="rounded-xl px-6"
                   style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-                  onClick={() => setCurrentView('app')}
+                  onClick={() => setCurrentView('login')}
                 >
                   {t.getStarted}
                 </Button>
@@ -580,7 +621,7 @@ export default function Page() {
                 <Button 
                   className="w-full rounded-xl"
                   style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-                  onClick={() => { setCurrentView('app'); setIsMenuOpen(false); }}
+                  onClick={() => { setCurrentView('login'); setIsMenuOpen(false); }}
                 >
                   {t.getStarted}
                 </Button>
@@ -597,7 +638,7 @@ export default function Page() {
               <div className="inline-block p-4 rounded-3xl animate-pulse-glow" style={{ background: 'rgba(45, 58, 43, 0.5)' }}>
                 <img 
                   src="/favicon.png" 
-                  alt="KINF Logo" 
+                  alt="KNF Logo" 
                   className="rounded-2xl"
                   style={{ width: 120, height: 120, objectFit: 'contain' }}
                 />
@@ -617,7 +658,7 @@ export default function Page() {
               className="text-3xl sm:text-4xl font-bold mb-6 animate-fade-in-up delay-100"
               style={{ color: '#7A9A7A', fontFamily: "'Cairo', sans-serif" }}
             >
-              كِنف
+              كنف
             </div>
             
             {/* Subtitle */}
@@ -634,7 +675,7 @@ export default function Page() {
                 size="lg"
                 className="rounded-2xl px-8 h-14 text-lg font-semibold group hover-lift"
                 style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-                onClick={() => setCurrentView('app')}
+                onClick={() => setCurrentView('login')}
               >
                 {t.getStarted}
                 <ArrowRight className={`w-5 h-5 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'} group-hover:translate-x-1 transition-transform`} />
@@ -684,7 +725,6 @@ export default function Page() {
                     title={feature.title}
                     desc={feature.desc}
                     delay={feature.delay}
-                    language={language}
                   />
                 </AnimatedSection>
               ))}
@@ -700,13 +740,13 @@ export default function Page() {
                 className="text-3xl sm:text-4xl font-bold"
                 style={{ color: '#E8DCC0' }}
               >
-                {isRTL ? 'كيف يعمل كِنف؟' : 'How KINF Works?'}
+                {isRTL ? 'كيف يعمل كنف؟' : 'How KNF Works?'}
               </h2>
             </AnimatedSection>
             
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { num: '01', title: isRTL ? 'حمّل التطبيق' : 'Download the App', desc: isRTL ? 'حمل تطبيق كِنف على هاتفك' : 'Download the KINF app', icon: Smartphone },
+                { num: '01', title: isRTL ? 'حمّل التطبيق' : 'Download the App', desc: isRTL ? 'حمل تطبيق كنف على هاتفك' : 'Download the KNF app', icon: Smartphone },
                 { num: '02', title: isRTL ? 'اربط العربة' : 'Connect the Stroller', desc: isRTL ? 'اتصل بالعربة عبر البلوتوث' : 'Connect via Bluetooth', icon: Bluetooth },
                 { num: '03', title: isRTL ? 'استمتع بالأمان' : 'Enjoy Peace of Mind', desc: isRTL ? 'راقب طفلك واحصل على تنبيهات' : 'Monitor and get alerts', icon: Shield },
               ].map((step, index) => (
@@ -748,7 +788,7 @@ export default function Page() {
                       <div className="animate-float">
                         <img 
                           src="/favicon.png" 
-                          alt="KINF Logo" 
+                          alt="KNF Logo" 
                           className="rounded-2xl"
                           style={{ width: 120, height: 120, objectFit: 'contain' }}
                         />
@@ -812,13 +852,13 @@ export default function Page() {
                   className="text-lg mb-8"
                   style={{ color: '#B8B0A0' }}
                 >
-                  {isRTL ? 'انضم إلى آلاف العائلات التي تثق بكِنف' : 'Join thousands of families who trust KINF'}
+                  {isRTL ? 'انضم إلى آلاف العائلات التي تثق بكنف' : 'Join thousands of families who trust KNF'}
                 </p>
                 <Button 
                   size="lg"
                   className="rounded-2xl px-10 h-14 text-lg font-semibold hover-lift"
                   style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-                  onClick={() => setCurrentView('app')}
+                  onClick={() => setCurrentView('login')}
                 >
                   {t.getStarted}
                   <ArrowRight className={`w-5 h-5 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
@@ -832,9 +872,9 @@ export default function Page() {
         <footer className="py-8 px-4 relative z-10 border-t" style={{ borderColor: 'rgba(232, 220, 192, 0.1)' }}>
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <KINFLogo size={40} />
+              <KNFLogo size={40} />
               <p className="text-sm text-center" style={{ color: '#B8B0A0' }}>
-                © 2024 KINFكِنف. {t.footerRights}
+                © 2026 KNFكنف. {t.footerRights}
               </p>
               <div className="flex items-center gap-2 text-sm" style={{ color: '#B8B0A0' }}>
                 <Heart className="w-4 h-4 fill-red-400 text-red-400" />
@@ -843,6 +883,138 @@ export default function Page() {
             </div>
           </div>
         </footer>
+      </div>
+    )
+  }
+
+  // ============== LOGIN PAGE ==============
+  if (currentView === 'login') {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center overflow-hidden"
+        dir={isRTL ? 'rtl' : 'ltr'}
+        style={{ 
+          fontFamily: isRTL ? "'Cairo', sans-serif" : undefined,
+          background: 'linear-gradient(135deg, #2D3A2B 0%, #1E2B1C 50%, #2D3A2B 100%)'
+        }}
+      >
+        <ParticleBackground />
+        
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="fixed top-4 start-4 z-50 rounded-xl gap-2"
+          style={{ color: '#B8B0A0' }}
+          onClick={() => setCurrentView('landing')}
+        >
+          <ArrowRight className={`w-4 h-4 ${isRTL ? '' : 'rotate-180'}`} />
+          {t.back}
+        </Button>
+
+        {/* Language Switcher */}
+        <Button
+          onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+          variant="ghost"
+          size="sm"
+          className="fixed top-4 end-4 z-50 gap-2 rounded-xl"
+          style={{ color: '#E8DCC0' }}
+        >
+          <Globe className="w-4 h-4" />
+          {language === 'ar' ? 'EN' : 'عربي'}
+        </Button>
+
+        {/* Login Card */}
+        <div className="w-full max-w-md px-4 z-10">
+          <Card 
+            className="border-0 rounded-3xl overflow-hidden glass animate-fade-in-scale"
+            style={{ background: 'rgba(45, 58, 43, 0.8)' }}
+          >
+            <CardContent className="p-8">
+              {/* Logo */}
+              <div className="text-center mb-8 animate-fade-in-up">
+                <div className="inline-block p-3 rounded-2xl mb-4" style={{ background: 'rgba(232, 220, 192, 0.1)' }}>
+                  <img 
+                    src="/favicon.png" 
+                    alt="KNF Logo" 
+                    className="rounded-xl mx-auto"
+                    style={{ width: 80, height: 80, objectFit: 'contain' }}
+                  />
+                </div>
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
+                  {t.loginTitle}
+                </h1>
+                <p className="text-sm" style={{ color: '#B8B0A0' }}>
+                  {t.loginSubtitle}
+                </p>
+              </div>
+
+              {/* Login Form */}
+              <div className="space-y-6 animate-fade-in-up delay-200">
+                {/* Name Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="flex items-center gap-2" style={{ color: '#E8DCC0' }}>
+                    <User className="w-4 h-4" />
+                    {t.nameLabel}
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={loginForm.name}
+                    onChange={(e) => setLoginForm({ ...loginForm, name: e.target.value })}
+                    placeholder={t.namePlaceholder}
+                    className="h-12 rounded-xl bg-[#3A4A3A] border-[#5A6A5A] text-[#E8DCC0] placeholder-[#8A8070]"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Email Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2" style={{ color: '#E8DCC0' }}>
+                    <Lock className="w-4 h-4" />
+                    {t.emailLabel}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                    placeholder={t.emailPlaceholder}
+                    className="h-12 rounded-xl bg-[#3A4A3A] border-[#5A6A5A] text-[#E8DCC0] placeholder-[#8A8070]"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Login Button */}
+                <Button
+                  className="w-full h-12 rounded-xl text-lg font-semibold group"
+                  style={{ background: '#E8DCC0', color: '#2D3A2B' }}
+                  onClick={handleLogin}
+                  disabled={isLoading || !loginForm.name.trim() || !loginForm.email.trim()}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      {t.loggingIn}
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t.loginBtn}
+                    </>
+                  )}
+                </Button>
+
+                {/* Demo Note */}
+                <p className="text-xs text-center" style={{ color: '#8A8070' }}>
+                  {isRTL 
+                    ? '✨ أدخل أي اسم وبريد للتسجيل (محاكاة)'
+                    : '✨ Enter any name and email to sign in (demo)'
+                  }
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -878,13 +1050,13 @@ export default function Page() {
             <div className="flex items-center gap-3">
               <img 
                 src="/favicon.png" 
-                alt="KINF Logo" 
+                alt="KNF Logo" 
                 className="rounded-xl"
                 style={{ width: 48, height: 48, objectFit: 'contain' }}
               />
               <div>
                 <h1 className="text-xl font-bold text-[#E8DCC0] tracking-wider">
-                  KINF
+                  KNF
                 </h1>
                 <div className="flex items-center gap-1.5 text-xs text-[#B8B0A0]">
                   <span className={`w-2 h-2 rounded-full bg-[#7A9A7A] animate-pulse`}></span>
@@ -920,17 +1092,25 @@ export default function Page() {
                 <Globe className="w-5 h-5" />
               </Button>
 
-              {/* Back Button */}
+              {/* Logout Button */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentView('landing')}
-                className="rounded-xl hover:bg-[#4F634F] text-[#E8DCC0] text-xs"
+                onClick={handleLogout}
+                className="rounded-xl hover:bg-[#8B5A5A]/30 text-[#E8DCC0] text-xs gap-1"
               >
-                {t.back}
+                <User className="w-4 h-4" />
+                {t.logout}
               </Button>
             </div>
           </div>
+
+          {/* User Welcome */}
+          {user && (
+            <div className="mt-2 text-xs text-center" style={{ color: '#7A9A7A' }}>
+              {t.welcomeBack}, <span className="font-semibold">{user.name}</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -964,7 +1144,7 @@ export default function Page() {
             <CardContent className="py-12 text-center">
               <img 
                 src="/favicon.png" 
-                alt="KINF Logo" 
+                alt="KNF Logo" 
                 className="mx-auto mb-4 opacity-50 rounded-xl"
                 style={{ width: 64, height: 64, objectFit: 'contain' }}
               />
