@@ -181,36 +181,30 @@ const simulatedAddresses = [
   'Prince Sultan Street, Dammam',
 ]
 
-// Generate random data
+// Generate random data - ONLY battery and incline change
 const generateRandomData = (currentData: StrollerData): StrollerData => {
-  const weightChange = (Math.random() - 0.5) * 2
-  const batteryChange = Math.random() > 0.7 ? -1 : 0
-  const inclineChange = (Math.random() - 0.5) * 4
+  // Battery decreases slowly (0-2% per update)
+  const batteryChange = -(Math.random() * 2)
+  // Incline changes randomly (simulating terrain)
+  const inclineChange = (Math.random() - 0.5) * 6
 
-  const newWeight = Math.max(0, Math.min(15, currentData.weight + weightChange))
   const newBattery = Math.max(0, Math.min(100, currentData.battery + batteryChange))
   const newIncline = Math.max(-30, Math.min(30, currentData.incline + inclineChange))
 
+  // Determine status based on battery and incline only
   let status: 'normal' | 'warning' | 'error' = 'normal'
-  if (newWeight === 0 || newBattery < 10 || Math.abs(newIncline) > 20) {
+  if (newBattery < 10 || Math.abs(newIncline) > 20) {
     status = 'error'
   } else if (newBattery < 20 || Math.abs(newIncline) > 15) {
     status = 'warning'
   }
 
-  const addressIndex = Math.floor(Math.random() * simulatedAddresses.length)
-
   return {
     ...currentData,
-    weight: Number(newWeight.toFixed(1)),
+    // Weight and Location stay the same (fixed per stroller)
     battery: Number(newBattery.toFixed(0)),
     incline: Number(newIncline.toFixed(1)),
     status,
-    location: {
-      lat: 24.7136 + (Math.random() - 0.5) * 0.01,
-      lng: 46.6753 + (Math.random() - 0.5) * 0.01,
-      address: simulatedAddresses[addressIndex],
-    },
   }
 }
 
@@ -343,56 +337,78 @@ export default function Home() {
     setTimeout(() => setAlertPopup(null), 3000)
   }, [playAlertSound])
 
-  // Data simulation effect
+  // Store intervals for each stroller (independent updates)
+  const intervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  // Data simulation effect - EACH stroller has its own independent interval
   useEffect(() => {
-    if (strollers.length === 0) return
+    // Clear intervals for removed strollers
+    const currentIds = new Set(strollers.map(s => s.id))
+    intervalsRef.current.forEach((interval, id) => {
+      if (!currentIds.has(id)) {
+        clearInterval(interval)
+        intervalsRef.current.delete(id)
+      }
+    })
 
-    const interval = setInterval(() => {
-      setStrollers(prev => {
-        const updated = prev.map(stroller => {
-          const newData = generateRandomData(stroller)
-          
-          if (stroller.weight > 0 && newData.weight === 0) {
-            const msgAr = t.childRemoved
-            const msgEn = 'Child removed from stroller!'
-            addEventLog('error', msgEn, msgAr, stroller.name)
-            showAlert(msgAr, 'error')
-          } else if (stroller.battery > 15 && newData.battery <= 15) {
-            const msgAr = t.lowBattery
-            const msgEn = 'Low battery!'
-            addEventLog('warning', msgEn, msgAr, stroller.name)
-            showAlert(msgAr, 'warning')
-          } else if (Math.abs(stroller.incline) < 20 && Math.abs(newData.incline) >= 20) {
-            const msgAr = t.dangerousIncline
-            const msgEn = 'Dangerous incline!'
-            addEventLog('error', msgEn, msgAr, stroller.name)
-            showAlert(msgAr, 'error')
-          }
-          
-          return newData
-        })
-        return updated
-      })
-    }, 3000 + Math.random() * 2000)
+    // Create intervals for new strollers
+    strollers.forEach(stroller => {
+      if (!intervalsRef.current.has(stroller.id)) {
+        // Each stroller gets a unique random interval (3-5 seconds)
+        const randomInterval = 3000 + Math.random() * 2000
+        
+        const interval = setInterval(() => {
+          setStrollers(prev => {
+            const currentStroller = prev.find(s => s.id === stroller.id)
+            if (!currentStroller) return prev
+            
+            const newData = generateRandomData(currentStroller)
+            
+            // Check for alerts (battery and incline only now)
+            if (currentStroller.battery > 15 && newData.battery <= 15) {
+              const msgAr = t.lowBattery
+              const msgEn = 'Low battery!'
+              addEventLog('warning', msgEn, msgAr, stroller.name)
+              showAlert(msgAr, 'warning')
+            } else if (Math.abs(currentStroller.incline) < 20 && Math.abs(newData.incline) >= 20) {
+              const msgAr = t.dangerousIncline
+              const msgEn = 'Dangerous incline!'
+              addEventLog('error', msgEn, msgAr, stroller.name)
+              showAlert(msgAr, 'error')
+            }
+            
+            return prev.map(s => s.id === stroller.id ? newData : s)
+          })
+        }, randomInterval)
+        
+        intervalsRef.current.set(stroller.id, interval)
+      }
+    })
 
-    return () => clearInterval(interval)
-  }, [strollers.length, addEventLog, showAlert, t])
+    // Cleanup on unmount
+    return () => {
+      intervalsRef.current.forEach(interval => clearInterval(interval))
+    }
+  }, [strollers.map(s => s.id).join(','), addEventLog, showAlert, t])
 
   // Add stroller
   const handleAddStroller = () => {
     if (!newStrollerName.trim()) return
 
+    // Each stroller gets unique initial values
+    const addressIndex = Math.floor(Math.random() * simulatedAddresses.length)
+    
     const newStroller: StrollerData = {
       id: Date.now().toString(),
       name: newStrollerName.trim(),
       location: {
-        lat: 24.7136,
-        lng: 46.6753,
-        address: simulatedAddresses[0],
+        lat: 24.7136 + (Math.random() - 0.5) * 0.05,
+        lng: 46.6753 + (Math.random() - 0.5) * 0.05,
+        address: simulatedAddresses[addressIndex],
       },
-      weight: 3.5 + Math.random() * 5,
-      battery: 80 + Math.random() * 20,
-      incline: (Math.random() - 0.5) * 10,
+      weight: Number((3.5 + Math.random() * 5).toFixed(1)), // Fixed weight for this stroller
+      battery: Number((70 + Math.random() * 30).toFixed(0)), // Random starting battery
+      incline: Number(((Math.random() - 0.5) * 10).toFixed(1)), // Random starting incline
       status: 'normal',
       bluetoothConnected: false,
     }
