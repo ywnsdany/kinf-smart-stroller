@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { 
   MapPin, 
   Scale, 
@@ -23,7 +22,6 @@ import {
   BluetoothOff,
   Globe,
   History,
-  Baby,
   Trash2,
   Volume2,
   VolumeX
@@ -52,6 +50,7 @@ interface EventLog {
 
 interface Translations {
   appName: string
+  appNameAr: string
   dashboard: string
   location: string
   weight: string
@@ -91,7 +90,8 @@ interface Translations {
 // Translations
 const translations: { ar: Translations; en: Translations } = {
   ar: {
-    appName: 'كِنف',
+    appName: 'KINF',
+    appNameAr: 'كِنف',
     dashboard: 'لوحة التحكم',
     location: 'الموقع',
     weight: 'الوزن',
@@ -129,6 +129,7 @@ const translations: { ar: Translations; en: Translations } = {
   },
   en: {
     appName: 'KINF',
+    appNameAr: 'كِنف',
     dashboard: 'Dashboard',
     location: 'Location',
     weight: 'Weight',
@@ -213,6 +214,61 @@ const generateRandomData = (currentData: StrollerData): StrollerData => {
   }
 }
 
+// Logo Component - KINF Monogram with Stroller Icon
+function KINFLogo({ size = 40 }: { size?: number }) {
+  return (
+    <div 
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <svg 
+        viewBox="0 0 100 100" 
+        className="w-full h-full"
+        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
+      >
+        {/* Background circle */}
+        <circle 
+          cx="50" 
+          cy="50" 
+          r="48" 
+          fill="#E8E0D0"
+        />
+        
+        {/* K Letter */}
+        <path 
+          d="M25 25 L25 75 L32 75 L32 55 L45 75 L55 75 L38 52 L55 25 L45 25 L32 48 L32 25 Z" 
+          fill="#3A4A3A"
+        />
+        
+        {/* I Letter (stylized) */}
+        <path 
+          d="M58 25 L65 25 L65 75 L58 75 Z M55 25 L68 25 L68 30 L55 30 Z M55 70 L68 70 L68 75 L55 75 Z" 
+          fill="#3A4A3A"
+        />
+        
+        {/* N Letter */}
+        <path 
+          d="M72 25 L72 75 L79 75 L79 40 L92 75 L100 75 L100 25 L93 25 L93 60 L80 25 Z" 
+          fill="#3A4A3A"
+        />
+        
+        {/* Small stroller icon */}
+        <g transform="translate(40, 78) scale(0.3)">
+          {/* Stroller body */}
+          <rect x="5" y="5" width="30" height="15" rx="3" fill="#4F634F" />
+          {/* Canopy */}
+          <path d="M5 10 Q5 0 20 0 Q35 0 35 10 L35 15 L5 15 Z" fill="#5A7A5A" />
+          {/* Wheels */}
+          <circle cx="12" cy="28" r="5" fill="none" stroke="#4F634F" strokeWidth="2" />
+          <circle cx="32" cy="28" r="5" fill="none" stroke="#4F634F" strokeWidth="2" />
+          {/* Handle */}
+          <path d="M35 8 L45 2" stroke="#4F634F" strokeWidth="2" fill="none" />
+        </g>
+      </svg>
+    </div>
+  )
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar')
   const [strollers, setStrollers] = useState<StrollerData[]>([])
@@ -249,7 +305,6 @@ export default function Home() {
       oscillator.start()
       oscillator.stop(ctx.currentTime + 0.2)
       
-      // Play second beep for error
       if (type === 'error') {
         setTimeout(() => {
           const osc2 = ctx.createOscillator()
@@ -297,7 +352,6 @@ export default function Home() {
         const updated = prev.map(stroller => {
           const newData = generateRandomData(stroller)
           
-          // Check for alerts
           if (stroller.weight > 0 && newData.weight === 0) {
             const msgAr = t.childRemoved
             const msgEn = 'Child removed from stroller!'
@@ -319,7 +373,7 @@ export default function Home() {
         })
         return updated
       })
-    }, 3000 + Math.random() * 2000) // 3-5 seconds
+    }, 3000 + Math.random() * 2000)
 
     return () => clearInterval(interval)
   }, [strollers.length, addEventLog, showAlert, t])
@@ -392,32 +446,35 @@ export default function Home() {
   // Get status color
   const getStatusColor = (status: StrollerData['status']) => {
     switch (status) {
-      case 'normal': return 'bg-green-500'
-      case 'warning': return 'bg-yellow-500'
-      case 'error': return 'bg-red-500'
+      case 'normal': return 'bg-[#7A9A7A]'
+      case 'warning': return 'bg-[#B8A060]'
+      case 'error': return 'bg-[#8B5A5A]'
     }
   }
 
   // Get battery color
   const getBatteryColor = (battery: number) => {
-    if (battery <= 10) return 'bg-red-500'
-    if (battery <= 20) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (battery <= 10) return 'bg-[#8B5A5A]'
+    if (battery <= 20) return 'bg-[#B8A060]'
+    return 'bg-[#7A9A7A]'
   }
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+      className="min-h-screen"
       dir={isRTL ? 'rtl' : 'ltr'}
-      style={{ fontFamily: isRTL ? "'Cairo', 'Tajawal', sans-serif" : undefined }}
+      style={{ 
+        fontFamily: isRTL ? "'Cairo', 'Tajawal', sans-serif" : undefined,
+        background: 'linear-gradient(135deg, #3A4A3A 0%, #4F634F 50%, #3A4A3A 100%)'
+      }}
     >
       {/* Alert Popup */}
       {alertPopup?.show && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
           <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
             alertPopup.type === 'error' 
-              ? 'bg-red-500 text-white' 
-              : 'bg-yellow-500 text-white'
+              ? 'bg-[#8B5A5A] text-[#E8E0D0]' 
+              : 'bg-[#B8A060] text-[#3A4A3A]'
           }`}>
             <AlertTriangle className="w-6 h-6 animate-pulse" />
             <span className="font-semibold">{alertPopup.message}</span>
@@ -426,21 +483,22 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/80 dark:bg-gray-900/80 border-b border-pink-100 dark:border-gray-700">
+      <header className="sticky top-0 z-40 backdrop-blur-lg border-b border-[#5A6A5A]/30" style={{ background: 'rgba(58, 74, 58, 0.9)' }}>
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg">
-                <Baby className="w-6 h-6 text-white" />
-              </div>
+              <KINFLogo size={48} />
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold text-[#E8E0D0] tracking-wider">
                   {t.appName}
                 </h1>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <span className={`w-2 h-2 rounded-full bg-green-500 animate-pulse`}></span>
+                <span className="text-lg text-[#B8B0A0]" style={{ fontFamily: "'Cairo', sans-serif" }}>
+                  {t.appNameAr}
+                </span>
+                <div className="flex items-center gap-1.5 text-xs text-[#B8B0A0]">
+                  <span className={`w-2 h-2 rounded-full bg-[#7A9A7A] animate-pulse`}></span>
                   <span>{t.realTime}</span>
-                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                  <span className="text-[#6A8A6A]">•</span>
                   <span>{t.simulating}</span>
                 </div>
               </div>
@@ -452,12 +510,12 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMuted(!isMuted)}
-                className="rounded-xl hover:bg-pink-100 dark:hover:bg-gray-700"
+                className="rounded-xl hover:bg-[#4F634F] text-[#E8E0D0]"
               >
                 {isMuted ? (
-                  <VolumeX className="w-5 h-5 text-gray-400" />
+                  <VolumeX className="w-5 h-5 text-[#B8B0A0]" />
                 ) : (
-                  <Volume2 className="w-5 h-5 text-pink-500" />
+                  <Volume2 className="w-5 h-5 text-[#E8E0D0]" />
                 )}
               </Button>
               
@@ -466,9 +524,9 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-                className="rounded-xl hover:bg-pink-100 dark:hover:bg-gray-700"
+                className="rounded-xl hover:bg-[#4F634F] text-[#E8E0D0]"
               >
-                <Globe className="w-5 h-5 text-pink-500" />
+                <Globe className="w-5 h-5" />
               </Button>
             </div>
           </div>
@@ -479,32 +537,34 @@ export default function Home() {
       <main className="max-w-md mx-auto px-4 py-6 pb-24">
         {/* Stats Summary */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 text-center border border-pink-100 dark:border-gray-700">
-            <div className="text-2xl font-bold text-pink-500">{strollers.length}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#E8E0D0]">{strollers.length}</div>
+            <div className="text-xs text-[#B8B0A0]">
               {language === 'ar' ? 'العربات' : 'Strollers'}
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 text-center border border-pink-100 dark:border-gray-700">
-            <div className="text-2xl font-bold text-green-500">
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#7A9A7A]">
               {strollers.filter(s => s.status === 'normal').length}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{t.normal}</div>
+            <div className="text-xs text-[#B8B0A0]">{t.normal}</div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 text-center border border-pink-100 dark:border-gray-700">
-            <div className="text-2xl font-bold text-yellow-500">
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#B8A060]">
               {strollers.filter(s => s.status !== 'normal').length}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{t.alerts}</div>
+            <div className="text-xs text-[#B8B0A0]">{t.alerts}</div>
           </div>
         </div>
 
         {/* Strollers List */}
         {strollers.length === 0 ? (
-          <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <Card className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden" style={{ background: 'rgba(68, 87, 68, 0.6)' }}>
             <CardContent className="py-12 text-center">
-              <Baby className="w-16 h-16 mx-auto text-pink-300 dark:text-pink-600 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">{t.noStrollers}</p>
+              <div className="w-16 h-16 mx-auto mb-4 opacity-50">
+                <KINFLogo size={64} />
+              </div>
+              <p className="text-[#B8B0A0]">{t.noStrollers}</p>
             </CardContent>
           </Card>
         ) : (
@@ -512,12 +572,12 @@ export default function Home() {
             {strollers.map((stroller, index) => (
               <Card 
                 key={stroller.id} 
-                className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl overflow-hidden animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden animate-fade-in"
+                style={{ background: 'rgba(68, 87, 68, 0.6)', animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <CardTitle className="text-lg font-bold text-[#E8E0D0] flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${getStatusColor(stroller.status)} animate-pulse`} />
                       {stroller.name}
                     </CardTitle>
@@ -527,8 +587,8 @@ export default function Home() {
                         variant={stroller.bluetoothConnected ? "default" : "secondary"}
                         className={`rounded-xl cursor-pointer transition-all ${
                           stroller.bluetoothConnected 
-                            ? 'bg-blue-500 hover:bg-blue-600' 
-                            : 'bg-gray-200 dark:bg-gray-700'
+                            ? 'bg-[#7A9A7A] hover:bg-[#6A8A6A] text-[#E8E0D0]' 
+                            : 'bg-[#4F634F] text-[#B8B0A0]'
                         }`}
                         onClick={() => toggleBluetooth(stroller.id)}
                       >
@@ -545,9 +605,9 @@ export default function Home() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteStroller(stroller.id)}
-                        className="rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 h-8 w-8"
+                        className="rounded-xl hover:bg-[#8B5A5A]/30 h-8 w-8"
                       >
-                        <Trash2 className="w-4 h-4 text-red-400" />
+                        <Trash2 className="w-4 h-4 text-[#8B5A5A]" />
                       </Button>
                     </div>
                   </div>
@@ -557,87 +617,89 @@ export default function Home() {
                   {/* Data Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     {/* Location */}
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl p-3">
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
                         <MapPin className="w-4 h-4" />
                         <span className="text-xs font-medium">{t.location}</span>
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                      <div className="text-xs text-[#E8E0D0] truncate">
                         {stroller.location.address}
                       </div>
                     </div>
                     
                     {/* Weight */}
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-2xl p-3">
-                      <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-1">
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
                         <Scale className="w-4 h-4" />
                         <span className="text-xs font-medium">{t.weight}</span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-xl font-bold ${stroller.weight === 0 ? 'text-red-500 animate-pulse' : 'text-gray-700 dark:text-gray-200'}`}>
+                        <span className={`text-xl font-bold ${stroller.weight === 0 ? 'text-[#8B5A5A] animate-pulse' : 'text-[#E8E0D0]'}`}>
                           {stroller.weight.toFixed(1)}
                         </span>
-                        <span className="text-xs text-gray-500">{t.kg}</span>
+                        <span className="text-xs text-[#B8B0A0]">{t.kg}</span>
                       </div>
                     </div>
                     
                     {/* Battery */}
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-2xl p-3">
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
                         <Battery className="w-4 h-4" />
                         <span className="text-xs font-medium">{t.battery}</span>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-baseline gap-1">
-                          <span className={`text-xl font-bold ${stroller.battery <= 15 ? 'text-red-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                          <span className={`text-xl font-bold ${stroller.battery <= 15 ? 'text-[#8B5A5A]' : 'text-[#E8E0D0]'}`}>
                             {stroller.battery.toFixed(0)}
                           </span>
-                          <span className="text-xs text-gray-500">%</span>
+                          <span className="text-xs text-[#B8B0A0]">%</span>
                         </div>
                         <Progress 
                           value={stroller.battery} 
-                          className={`h-1.5 ${stroller.battery <= 15 ? '[&>div]:bg-red-500' : '[&>div]:bg-green-500'}`}
+                          className={`h-1.5 ${stroller.battery <= 15 ? '[&>div]:bg-[#8B5A5A]' : '[&>div]:bg-[#7A9A7A]'}`}
                         />
                       </div>
                     </div>
                     
                     {/* Incline */}
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 rounded-2xl p-3">
-                      <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-1">
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
                         <TrendingUp className="w-4 h-4" />
                         <span className="text-xs font-medium">{t.incline}</span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-xl font-bold ${Math.abs(stroller.incline) > 15 ? 'text-red-500 animate-pulse' : 'text-gray-700 dark:text-gray-200'}`}>
+                        <span className={`text-xl font-bold ${Math.abs(stroller.incline) > 15 ? 'text-[#8B5A5A] animate-pulse' : 'text-[#E8E0D0]'}`}>
                           {stroller.incline > 0 ? '+' : ''}{stroller.incline.toFixed(1)}
                         </span>
-                        <span className="text-xs text-gray-500">°</span>
+                        <span className="text-xs text-[#B8B0A0]">°</span>
                       </div>
                     </div>
                   </div>
                   
                   {/* Status */}
-                  <div className={`flex items-center justify-between p-3 rounded-2xl ${
-                    stroller.status === 'normal' 
-                      ? 'bg-green-50 dark:bg-green-900/20' 
-                      : stroller.status === 'warning'
-                      ? 'bg-yellow-50 dark:bg-yellow-900/20'
-                      : 'bg-red-50 dark:bg-red-900/20'
-                  }`}>
+                  <div className="flex items-center justify-between p-3 rounded-2xl"
+                    style={{ 
+                      background: stroller.status === 'normal' 
+                        ? 'rgba(122, 154, 122, 0.3)' 
+                        : stroller.status === 'warning'
+                        ? 'rgba(184, 160, 96, 0.3)'
+                        : 'rgba(139, 90, 90, 0.3)'
+                    }}
+                  >
                     <div className="flex items-center gap-2">
                       {stroller.status === 'normal' ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-5 h-5 text-[#7A9A7A]" />
                       ) : stroller.status === 'warning' ? (
-                        <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                        <AlertTriangle className="w-5 h-5 text-[#B8A060]" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-500" />
+                        <XCircle className="w-5 h-5 text-[#8B5A5A]" />
                       )}
                       <span className={`font-medium ${
                         stroller.status === 'normal' 
-                          ? 'text-green-700 dark:text-green-400' 
+                          ? 'text-[#7A9A7A]' 
                           : stroller.status === 'warning'
-                          ? 'text-yellow-700 dark:text-yellow-400'
-                          : 'text-red-700 dark:text-red-400'
+                          ? 'text-[#B8A060]'
+                          : 'text-[#8B5A5A]'
                       }`}>
                         {t[stroller.status]}
                       </span>
@@ -646,10 +708,10 @@ export default function Home() {
                       variant="outline" 
                       className={`rounded-xl ${
                         stroller.status === 'normal' 
-                          ? 'border-green-300 text-green-600' 
+                          ? 'border-[#7A9A7A] text-[#7A9A7A]' 
                           : stroller.status === 'warning'
-                          ? 'border-yellow-300 text-yellow-600'
-                          : 'border-red-300 text-red-600'
+                          ? 'border-[#B8A060] text-[#B8A060]'
+                          : 'border-[#8B5A5A] text-[#8B5A5A]'
                       }`}
                     >
                       {t.status}
@@ -661,10 +723,9 @@ export default function Home() {
                     onClick={() => toggleBluetooth(stroller.id)}
                     className={`w-full rounded-2xl h-11 ${
                       stroller.bluetoothConnected
-                        ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
+                        ? 'bg-[#7A9A7A] hover:bg-[#6A8A6A] text-[#E8E0D0]'
+                        : 'bg-[#E8E0D0] hover:bg-[#D8D0C0] text-[#3A4A3A]'
                     }`}
-                    variant={stroller.bluetoothConnected ? 'default' : 'secondary'}
                   >
                     {stroller.bluetoothConnected ? (
                       <>
@@ -687,8 +748,8 @@ export default function Home() {
         {/* Event History */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <History className="w-5 h-5 text-pink-500" />
+            <h2 className="text-lg font-bold text-[#E8E0D0] flex items-center gap-2">
+              <History className="w-5 h-5 text-[#B8B0A0]" />
               {t.eventHistory}
             </h2>
             {eventLogs.length > 0 && (
@@ -696,37 +757,37 @@ export default function Home() {
                 variant="ghost" 
                 size="sm" 
                 onClick={clearHistory}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-[#B8B0A0] hover:text-[#E8E0D0] hover:bg-[#4F634F]"
               >
                 {t.clearHistory}
               </Button>
             )}
           </div>
           
-          <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <Card className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden" style={{ background: 'rgba(68, 87, 68, 0.6)' }}>
             <CardContent className="p-0">
               <ScrollArea className="h-64">
                 {eventLogs.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                  <div className="py-8 text-center text-[#B8B0A0]">
                     <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">{t.noEvents}</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  <div className="divide-y divide-[#5A6A5A]/30">
                     {eventLogs.map((log) => (
-                      <div key={log.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div key={log.id} className="px-4 py-3 hover:bg-[#4F634F]/30 transition-colors">
                         <div className="flex items-start gap-3">
                           <div className={`w-2 h-2 rounded-full mt-2 ${
-                            log.type === 'error' ? 'bg-red-500' :
-                            log.type === 'warning' ? 'bg-yellow-500' :
-                            log.type === 'success' ? 'bg-green-500' :
-                            'bg-blue-500'
+                            log.type === 'error' ? 'bg-[#8B5A5A]' :
+                            log.type === 'warning' ? 'bg-[#B8A060]' :
+                            log.type === 'success' ? 'bg-[#7A9A7A]' :
+                            'bg-[#B8B0A0]'
                           }`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <p className="text-sm font-medium text-[#E8E0D0]">
                               {language === 'ar' ? log.messageAr : log.message}
                             </p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                            <div className="flex items-center gap-2 mt-1 text-xs text-[#B8B0A0]">
                               <span>{log.strollerName}</span>
                               <span>•</span>
                               <span>{formatTime(log.timestamp)}</span>
@@ -747,25 +808,25 @@ export default function Home() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
           <Button 
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-2xl h-14 px-6 shadow-2xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-2xl h-14 px-6 shadow-2xl gap-2 bg-[#E8E0D0] hover:bg-[#D8D0C0] text-[#3A4A3A] font-semibold"
           >
             <Plus className="w-5 h-5" />
             {t.addStroller}
           </Button>
         </DialogTrigger>
-        <DialogContent className="rounded-3xl max-w-sm">
+        <DialogContent className="rounded-3xl max-w-sm bg-[#445744] border-[#5A6A5A]">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl">{t.addStroller}</DialogTitle>
+            <DialogTitle className="text-center text-xl text-[#E8E0D0]">{t.addStroller}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="strollerName">{t.strollerName}</Label>
+              <Label htmlFor="strollerName" className="text-[#E8E0D0]">{t.strollerName}</Label>
               <Input
                 id="strollerName"
                 value={newStrollerName}
                 onChange={(e) => setNewStrollerName(e.target.value)}
                 placeholder={language === 'ar' ? 'مثال: عربة أحمد' : 'e.g., Baby Stroller 1'}
-                className="rounded-xl h-11"
+                className="rounded-xl h-11 bg-[#4F634F] border-[#5A6A5A] text-[#E8E0D0] placeholder-[#B8B0A0]"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddStroller()}
               />
             </div>
@@ -773,14 +834,14 @@ export default function Home() {
               <Button
                 variant="secondary"
                 onClick={() => setIsAddDialogOpen(false)}
-                className="flex-1 rounded-xl h-11"
+                className="flex-1 rounded-xl h-11 bg-[#4F634F] hover:bg-[#5A7A5A] text-[#E8E0D0]"
               >
                 {t.cancel}
               </Button>
               <Button
                 onClick={handleAddStroller}
                 disabled={!newStrollerName.trim()}
-                className="flex-1 rounded-xl h-11 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                className="flex-1 rounded-xl h-11 bg-[#E8E0D0] hover:bg-[#D8D0C0] text-[#3A4A3A]"
               >
                 {t.add}
               </Button>

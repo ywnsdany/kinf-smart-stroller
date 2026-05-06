@@ -46,97 +46,102 @@
 :root {
   --radius: 0.75rem;
   
-  /* Baby-friendly pastel color palette */
-  --background: oklch(0.98 0.01 320);
-  --foreground: oklch(0.25 0.02 280);
+  /* KINF Brand Colors - Based on logo image */
+  /* Deep muted green background */
+  --background: #3A4A3A;
+  /* Light cream text */
+  --foreground: #E8E0D0;
   
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.02 280);
+  /* Card with slight green tint */
+  --card: #445744;
+  --card-foreground: #E8E0D0;
   
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.02 280);
+  --popover: #445744;
+  --popover-foreground: #E8E0D0;
   
-  /* Soft coral/peach primary */
-  --primary: oklch(0.65 0.18 25);
-  --primary-foreground: oklch(1 0 0);
+  /* Primary - Cream/Light for buttons */
+  --primary: #E8E0D0;
+  --primary-foreground: #3A4A3A;
   
-  /* Soft lavender secondary */
-  --secondary: oklch(0.92 0.04 300);
-  --secondary-foreground: oklch(0.35 0.08 280);
+  /* Secondary - Lighter green */
+  --secondary: #4F634F;
+  --secondary-foreground: #E8E0D0;
   
-  --muted: oklch(0.95 0.02 320);
-  --muted-foreground: oklch(0.5 0.02 280);
+  /* Muted - Medium green */
+  --muted: #4F634F;
+  --muted-foreground: #B8B0A0;
   
-  /* Soft mint accent */
-  --accent: oklch(0.88 0.08 160);
-  --accent-foreground: oklch(0.3 0.05 160);
+  /* Accent - Warm sage */
+  --accent: #5A7A5A;
+  --accent-foreground: #E8E0D0;
   
-  /* Soft coral for destructive */
-  --destructive: oklch(0.55 0.22 25);
+  /* Destructive - Soft terracotta */
+  --destructive: #8B5A5A;
   
-  --border: oklch(0.9 0.02 320);
-  --input: oklch(0.92 0.02 320);
-  --ring: oklch(0.65 0.18 25);
+  --border: #5A6A5A;
+  --input: #4F634F;
+  --ring: #E8E0D0;
   
-  /* Chart colors - pastel palette */
-  --chart-1: oklch(0.7 0.18 25);
-  --chart-2: oklch(0.65 0.15 160);
-  --chart-3: oklch(0.6 0.12 300);
-  --chart-4: oklch(0.75 0.14 200);
-  --chart-5: oklch(0.68 0.1 50);
+  /* Chart colors - Earthy palette */
+  --chart-1: #7A9A7A;
+  --chart-2: #B8B0A0;
+  --chart-3: #8B7A6A;
+  --chart-4: #6A8A6A;
+  --chart-5: #9A8A7A;
   
-  --sidebar: oklch(0.98 0.01 320);
-  --sidebar-foreground: oklch(0.25 0.02 280);
-  --sidebar-primary: oklch(0.65 0.18 25);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.92 0.04 300);
-  --sidebar-accent-foreground: oklch(0.35 0.08 280);
-  --sidebar-border: oklch(0.9 0.02 320);
-  --sidebar-ring: oklch(0.65 0.18 25);
+  --sidebar: #3A4A3A;
+  --sidebar-foreground: #E8E0D0;
+  --sidebar-primary: #E8E0D0;
+  --sidebar-primary-foreground: #3A4A3A;
+  --sidebar-accent: #4F634F;
+  --sidebar-accent-foreground: #E8E0D0;
+  --sidebar-border: #5A6A5A;
+  --sidebar-ring: #E8E0D0;
 }
 
 .dark {
-  --background: oklch(0.15 0.02 280);
-  --foreground: oklch(0.95 0.01 320);
+  /* Same as light mode for consistent branding */
+  --background: #3A4A3A;
+  --foreground: #E8E0D0;
   
-  --card: oklch(0.2 0.02 280);
-  --card-foreground: oklch(0.95 0.01 320);
+  --card: #445744;
+  --card-foreground: #E8E0D0;
   
-  --popover: oklch(0.2 0.02 280);
-  --popover-foreground: oklch(0.95 0.01 320);
+  --popover: #445744;
+  --popover-foreground: #E8E0D0;
   
-  --primary: oklch(0.7 0.18 25);
-  --primary-foreground: oklch(0.15 0.02 280);
+  --primary: #E8E0D0;
+  --primary-foreground: #3A4A3A;
   
-  --secondary: oklch(0.28 0.04 280);
-  --secondary-foreground: oklch(0.92 0.02 300);
+  --secondary: #4F634F;
+  --secondary-foreground: #E8E0D0;
   
-  --muted: oklch(0.25 0.02 280);
-  --muted-foreground: oklch(0.65 0.02 320);
+  --muted: #4F634F;
+  --muted-foreground: #B8B0A0;
   
-  --accent: oklch(0.35 0.08 160);
-  --accent-foreground: oklch(0.92 0.02 300);
+  --accent: #5A7A5A;
+  --accent-foreground: #E8E0D0;
   
-  --destructive: oklch(0.6 0.22 25);
+  --destructive: #8B5A5A;
   
-  --border: oklch(0.3 0.02 280);
-  --input: oklch(0.28 0.02 280);
-  --ring: oklch(0.7 0.18 25);
+  --border: #5A6A5A;
+  --input: #4F634F;
+  --ring: #E8E0D0;
   
-  --chart-1: oklch(0.7 0.18 25);
-  --chart-2: oklch(0.65 0.15 160);
-  --chart-3: oklch(0.6 0.12 300);
-  --chart-4: oklch(0.75 0.14 200);
-  --chart-5: oklch(0.68 0.1 50);
+  --chart-1: #7A9A7A;
+  --chart-2: #B8B0A0;
+  --chart-3: #8B7A6A;
+  --chart-4: #6A8A6A;
+  --chart-5: #9A8A7A;
   
-  --sidebar: oklch(0.18 0.02 280);
-  --sidebar-foreground: oklch(0.95 0.01 320);
-  --sidebar-primary: oklch(0.7 0.18 25);
-  --sidebar-primary-foreground: oklch(0.15 0.02 280);
-  --sidebar-accent: oklch(0.28 0.04 280);
-  --sidebar-accent-foreground: oklch(0.92 0.02 300);
-  --sidebar-border: oklch(0.3 0.02 280);
-  --sidebar-ring: oklch(0.7 0.18 25);
+  --sidebar: #3A4A3A;
+  --sidebar-foreground: #E8E0D0;
+  --sidebar-primary: #E8E0D0;
+  --sidebar-primary-foreground: #3A4A3A;
+  --sidebar-accent: #4F634F;
+  --sidebar-accent-foreground: #E8E0D0;
+  --sidebar-border: #5A6A5A;
+  --sidebar-ring: #E8E0D0;
 }
 
 @layer base {
@@ -213,16 +218,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #3A4A3A;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0.08 300);
+  background: #6A8A6A;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.6 0.1 300);
+  background: #7A9A7A;
 }
 
 /* Mobile-first responsive utilities */
