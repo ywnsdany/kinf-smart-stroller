@@ -53,6 +53,7 @@ interface StrollerData {
   incline: number
   status: 'normal' | 'warning' | 'error'
   bluetoothConnected: boolean
+  malfunction: string | null // عطل في العربة
 }
 
 interface EventLog {
@@ -69,15 +70,30 @@ interface UserData {
   email: string
 }
 
-// Simulated addresses
+// Simulated addresses - All in Riyadh
 const simulatedAddresses = [
-  'شارع الملك فهد، الرياض',
-  'حي العليا، الرياض',
-  'شارع التحلية، جدة',
-  'حي الروضة، جدة',
-  'شارع الأمير سلطان، الدمام',
-  'King Fahd Road, Riyadh',
-  'Olaya District, Riyadh',
+  'شارع الملك فهد، حي العليا، الرياض',
+  'شارع العليا، حي السليمانية، الرياض',
+  'شارع التحلية، حي الروضة، الرياض',
+  'حي الملز، الرياض',
+  'شارع الملك عبدالله، حي الياسمين، الرياض',
+  'حي النرجس، الرياض',
+  'شارع الأمير تركي، حي الورود، الرياض',
+  'حي الصحافة، الرياض',
+  'حي النخيل، الرياض',
+  'شارع الإمام سعود، حي الفيحاء، الرياض',
+  'King Fahd Road, Olaya District, Riyadh',
+  'King Abdullah Road, Al Yasmin, Riyadh',
+]
+
+// Malfunction types
+const malfunctionTypes = [
+  { id: 'wheels', ar: 'خلل بالعجلات', en: 'Wheel malfunction' },
+  { id: 'brake', ar: 'خلل بالفرامل', en: 'Brake malfunction' },
+  { id: 'handle', ar: 'خلل بالمقبض', en: 'Handle malfunction' },
+  { id: 'sensor', ar: 'خلل بالحساسات', en: 'Sensor malfunction' },
+  { id: 'weight', ar: 'الوزن غير طبيعي', en: 'Abnormal weight' },
+  { id: 'connection', ar: 'انقطاع الاتصال', en: 'Connection lost' },
 ]
 
 // Generate random data - ONLY battery and incline change
@@ -91,7 +107,7 @@ const generateRandomData = (currentData: StrollerData): StrollerData => {
   let status: 'normal' | 'warning' | 'error' = 'normal'
   if (newBattery < 10 || Math.abs(newIncline) > 20) {
     status = 'error'
-  } else if (newBattery < 20 || Math.abs(newIncline) > 15) {
+  } else if (newBattery < 20 || Math.abs(newIncline) > 15 || currentData.malfunction || currentData.weight === 0) {
     status = 'warning'
   }
 
@@ -464,6 +480,37 @@ export default function Page() {
 
     const addressIndex = Math.floor(Math.random() * simulatedAddresses.length)
     
+    // تحديد إذا كانت العربة ستكون بحالة غير طبيعية (25% احتمال)
+    const hasAbnormalCondition = Math.random() < 0.25
+    const abnormalType = hasAbnormalCondition ? Math.floor(Math.random() * 4) : -1 // 0: low battery, 1: high incline, 2: malfunction, 3: zero weight
+    
+    // تحديد الخلل إن وجد
+    const hasMalfunction = abnormalType === 2
+    const malfunction = hasMalfunction ? malfunctionTypes[Math.floor(Math.random() * malfunctionTypes.length)] : null
+    
+    // تحديد القيم بناءً على نوع الحالة غير الطبيعية
+    let battery = Number((70 + Math.random() * 30).toFixed(0))
+    let incline = Number(((Math.random() - 0.5) * 10).toFixed(1))
+    let weight = Number((3.5 + Math.random() * 5).toFixed(1))
+    let status: 'normal' | 'warning' | 'error' = 'normal'
+    
+    if (abnormalType === 0) {
+      // بطارية منخفضة جداً
+      battery = Number((5 + Math.random() * 10).toFixed(0))
+      status = 'error'
+    } else if (abnormalType === 1) {
+      // انحدار خطر
+      incline = Number((18 + Math.random() * 10).toFixed(1))
+      status = 'error'
+    } else if (abnormalType === 2) {
+      // خلل في العربة
+      status = 'warning'
+    } else if (abnormalType === 3) {
+      // وزن صفر (الطفل ليس في العربة)
+      weight = 0
+      status = 'warning'
+    }
+    
     const newStroller: StrollerData = {
       id: Date.now().toString(),
       name: newStrollerName.trim(),
@@ -472,15 +519,40 @@ export default function Page() {
         lng: 46.6753 + (Math.random() - 0.5) * 0.05,
         address: simulatedAddresses[addressIndex],
       },
-      weight: Number((3.5 + Math.random() * 5).toFixed(1)),
-      battery: Number((70 + Math.random() * 30).toFixed(0)),
-      incline: Number(((Math.random() - 0.5) * 10).toFixed(1)),
-      status: 'normal',
+      weight,
+      battery,
+      incline,
+      status,
       bluetoothConnected: false,
+      malfunction: malfunction?.id || null,
     }
 
     setStrollers(prev => [...prev, newStroller])
     addEventLog('success', `Stroller "${newStrollerName}" added`, `تمت إضافة العربة "${newStrollerName}"`, newStrollerName)
+    
+    // إضافة تنبيه الخلل إن وجد
+    if (malfunction) {
+      setTimeout(() => {
+        addEventLog('error', `${newStrollerName}: ${malfunction.en}`, `${newStrollerName}: ${malfunction.ar}`, newStrollerName)
+        showAlert(malfunction.ar, 'error')
+      }, 500)
+    } else if (abnormalType === 0) {
+      setTimeout(() => {
+        addEventLog('warning', `${newStrollerName}: Low battery!`, `${newStrollerName}: البطارية منخفضة!`, newStrollerName)
+        showAlert('البطارية منخفضة!', 'warning')
+      }, 500)
+    } else if (abnormalType === 1) {
+      setTimeout(() => {
+        addEventLog('error', `${newStrollerName}: Dangerous incline!`, `${newStrollerName}: انحدار خطر!`, newStrollerName)
+        showAlert('انحدار خطر!', 'error')
+      }, 500)
+    } else if (abnormalType === 3) {
+      setTimeout(() => {
+        addEventLog('warning', `${newStrollerName}: Weight disappeared - child not in stroller!`, `${newStrollerName}: الوزن اختفى - الطفل ليس في العربة!`, newStrollerName)
+        showAlert('الطفل ليس في العربة!', 'warning')
+      }, 500)
+    }
+    
     setNewStrollerName('')
     setIsAddDialogOpen(false)
   }
@@ -1293,6 +1365,32 @@ export default function Page() {
                       {t.status}
                     </Badge>
                   </div>
+                  
+                  {/* Malfunction Alert */}
+                  {stroller.malfunction && (
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#8B5A5A]/20 border border-[#8B5A5A]/30">
+                      <AlertTriangle className="w-5 h-5 text-[#8B5A5A] animate-pulse" />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-[#8B5A5A]">
+                          {language === 'ar' 
+                            ? malfunctionTypes.find(m => m.id === stroller.malfunction)?.ar 
+                            : malfunctionTypes.find(m => m.id === stroller.malfunction)?.en}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Weight Zero Alert (Child not in stroller) */}
+                  {stroller.weight === 0 && (
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#B8A060]/20 border border-[#B8A060]/30">
+                      <AlertTriangle className="w-5 h-5 text-[#B8A060] animate-pulse" />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-[#B8A060]">
+                          {language === 'ar' ? 'الطفل ليس في العربة!' : 'Child not in stroller!'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   
                   <Button
                     onClick={() => toggleBluetooth(stroller.id)}
