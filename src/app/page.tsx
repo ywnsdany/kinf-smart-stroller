@@ -1,18 +1,30 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   MapPin, 
+  Scale, 
   Battery, 
   TrendingUp, 
-  Bell, 
-  Bluetooth, 
-  Shield, 
-  Smartphone, 
+  AlertTriangle, 
+  CheckCircle, 
+  XCircle,
+  Plus,
+  Bluetooth,
+  BluetoothOff,
   Globe,
+  History,
+  Trash2,
+  Volume2,
+  VolumeX,
   ChevronDown,
   Menu,
   X,
@@ -21,87 +33,77 @@ import {
   Star,
   Heart,
   Baby,
-  Sparkles
+  Sparkles,
+  Shield,
+  Smartphone,
+  Bell
 } from 'lucide-react'
 
-// KINF Logo Component - Exact match to uploaded image
+// Types
+interface StrollerData {
+  id: string
+  name: string
+  location: { lat: number; lng: number; address: string }
+  weight: number
+  battery: number
+  incline: number
+  status: 'normal' | 'warning' | 'error'
+  bluetoothConnected: boolean
+}
+
+interface EventLog {
+  id: string
+  timestamp: Date
+  type: 'info' | 'warning' | 'error' | 'success'
+  message: string
+  messageAr: string
+  strollerName: string
+}
+
+// Simulated addresses
+const simulatedAddresses = [
+  'شارع الملك فهد، الرياض',
+  'حي العليا، الرياض',
+  'شارع التحلية، جدة',
+  'حي الروضة، جدة',
+  'شارع الأمير سلطان، الدمام',
+  'King Fahd Road, Riyadh',
+  'Olaya District, Riyadh',
+]
+
+// Generate random data - ONLY battery and incline change
+const generateRandomData = (currentData: StrollerData): StrollerData => {
+  const batteryChange = -(Math.random() * 2)
+  const inclineChange = (Math.random() - 0.5) * 6
+
+  const newBattery = Math.max(0, Math.min(100, currentData.battery + batteryChange))
+  const newIncline = Math.max(-30, Math.min(30, currentData.incline + inclineChange))
+
+  let status: 'normal' | 'warning' | 'error' = 'normal'
+  if (newBattery < 10 || Math.abs(newIncline) > 20) {
+    status = 'error'
+  } else if (newBattery < 20 || Math.abs(newIncline) > 15) {
+    status = 'warning'
+  }
+
+  return {
+    ...currentData,
+    battery: Number(newBattery.toFixed(0)),
+    incline: Number(newIncline.toFixed(1)),
+    status,
+  }
+}
+
+// Logo Component - Using Image
 function KINFLogo({ size = 60, showText = true }: { size?: number; showText?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div 
-        className="relative flex items-center justify-center rounded-2xl overflow-hidden"
-        style={{ 
-          width: size, 
-          height: size,
-          background: '#2D3A2B'
-        }}
-      >
-        <svg 
-          viewBox="0 0 120 120" 
-          className="w-full h-full p-2"
-        >
-          {/* K Letter */}
-          <text 
-            x="10" 
-            y="75" 
-            fontSize="55" 
-            fontWeight="bold" 
-            fontFamily="sans-serif" 
-            fill="#E8DCC0"
-          >
-            K
-          </text>
-          
-          {/* I Letter */}
-          <text 
-            x="45" 
-            y="75" 
-            fontSize="55" 
-            fontWeight="bold" 
-            fontFamily="sans-serif" 
-            fill="#E8DCC0"
-          >
-            I
-          </text>
-          
-          {/* N Letter */}
-          <text 
-            x="60" 
-            y="75" 
-            fontSize="55" 
-            fontWeight="bold" 
-            fontFamily="sans-serif" 
-            fill="#E8DCC0"
-          >
-            N
-          </text>
-          
-          {/* F Letter */}
-          <text 
-            x="95" 
-            y="75" 
-            fontSize="55" 
-            fontWeight="bold" 
-            fontFamily="sans-serif" 
-            fill="#E8DCC0"
-          >
-            F
-          </text>
-          
-          {/* Baby Stroller Icon */}
-          <g transform="translate(35, 85) scale(0.5)">
-            {/* Stroller body */}
-            <rect x="5" y="5" width="40" height="18" rx="4" fill="#E8DCC0" opacity="0.8" />
-            {/* Canopy */}
-            <path d="M5 12 Q5 0 25 0 Q45 0 45 12 L45 18 L5 18 Z" fill="#E8DCC0" />
-            {/* Wheels */}
-            <circle cx="15" cy="32" r="6" fill="none" stroke="#E8DCC0" strokeWidth="2.5" />
-            <circle cx="35" cy="32" r="6" fill="none" stroke="#E8DCC0" strokeWidth="2.5" />
-            {/* Handle */}
-            <line x1="45" y1="10" x2="55" y2="3" stroke="#E8DCC0" strokeWidth="2.5" strokeLinecap="round" />
-          </g>
-        </svg>
-      </div>
+      <img 
+        src="/favicon.png" 
+        alt="KINF Logo" 
+        className="rounded-2xl"
+        style={{ width: size, height: size, objectFit: 'contain' }}
+      />
       {showText && (
         <div className="flex flex-col">
           <span className="text-xl font-bold tracking-wider" style={{ color: '#E8DCC0' }}>
@@ -116,23 +118,33 @@ function KINFLogo({ size = 60, showText = true }: { size?: number; showText?: bo
   )
 }
 
-// Animated Background Particles
+// Fixed particles (no random on SSR)
+const fixedParticles = [
+  { size: 100, left: 10, top: 20, duration: 8, delay: 0 },
+  { size: 80, left: 80, top: 10, duration: 10, delay: 1 },
+  { size: 120, left: 50, top: 60, duration: 12, delay: 2 },
+  { size: 60, left: 20, top: 80, duration: 9, delay: 0.5 },
+  { size: 90, left: 70, top: 40, duration: 11, delay: 1.5 },
+  { size: 70, left: 30, top: 50, duration: 7, delay: 3 },
+]
+
+// Animated Background Particles - Fixed values for SSR
 function ParticleBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Floating circles */}
-      {[...Array(20)].map((_, i) => (
+      {/* Floating circles - fixed values */}
+      {fixedParticles.map((particle, i) => (
         <div
           key={i}
-          className="absolute rounded-full opacity-10"
+          className="absolute rounded-full opacity-10 animate-float"
           style={{
-            width: Math.random() * 100 + 50,
-            height: Math.random() * 100 + 50,
+            width: particle.size,
+            height: particle.size,
             background: 'radial-gradient(circle, #E8DCC0 0%, transparent 70%)',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 5}s`,
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
+            animationDuration: `${particle.duration}s`,
+            animationDelay: `${particle.delay}s`,
           }}
         />
       ))}
@@ -184,12 +196,10 @@ function AnimatedSection({ children, className = '', delay = 0 }: { children: Re
 }
 
 // Feature Card Component
-function FeatureCard({ icon: Icon, titleAr, titleEn, descAr, descEn, delay, language }: {
+function FeatureCard({ icon: Icon, title, desc, delay, language }: {
   icon: React.ElementType
-  titleAr: string
-  titleEn: string
-  descAr: string
-  descEn: string
+  title: string
+  desc: string
   delay: number
   language: 'ar' | 'en'
 }) {
@@ -206,82 +216,30 @@ function FeatureCard({ icon: Icon, titleAr, titleEn, descAr, descEn, delay, lang
           <Icon className="w-7 h-7" style={{ color: '#E8DCC0' }} />
         </div>
         <h3 className="text-xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
-          {language === 'ar' ? titleAr : titleEn}
+          {title}
         </h3>
         <p className="text-sm leading-relaxed" style={{ color: '#B8B0A0' }}>
-          {language === 'ar' ? descAr : descEn}
+          {desc}
         </p>
       </CardContent>
     </Card>
   )
 }
 
-// Stats Counter Component
-function StatCounter({ value, suffix, labelAr, labelEn, language }: {
-  value: number
-  suffix?: string
-  labelAr: string
-  labelEn: string
-  language: 'ar' | 'en'
-}) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-        }
-      },
-      { threshold: 0.5 }
-    )
-
-    if (ref.current) {
-      observer.observe(ref.current)
-    }
-
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!isVisible) return
-    
-    let start = 0
-    const end = value
-    const duration = 2000
-    const increment = end / (duration / 16)
-
-    const timer = setInterval(() => {
-      start += increment
-      if (start >= end) {
-        setCount(end)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(start))
-      }
-    }, 16)
-
-    return () => clearInterval(timer)
-  }, [isVisible, value])
-
-  return (
-    <div ref={ref} className="text-center">
-      <div className="text-4xl md:text-5xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
-        {count}{suffix}
-      </div>
-      <div className="text-sm" style={{ color: '#B8B0A0' }}>
-        {language === 'ar' ? labelAr : labelEn}
-      </div>
-    </div>
-  )
-}
-
-export default function LandingPage() {
+export default function Page() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar')
+  const [currentView, setCurrentView] = useState<'landing' | 'app'>('landing')
+  const [strollers, setStrollers] = useState<StrollerData[]>([])
+  const [eventLogs, setEventLogs] = useState<EventLog[]>([])
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [newStrollerName, setNewStrollerName] = useState('')
+  const [isMuted, setIsMuted] = useState(false)
+  const [alertPopup, setAlertPopup] = useState<{ show: boolean; message: string; type: 'warning' | 'error' } | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const intervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
   const isRTL = language === 'ar'
 
   // Handle scroll for navbar
@@ -299,453 +257,993 @@ export default function LandingPage() {
     home: isRTL ? 'الرئيسية' : 'Home',
     features: isRTL ? 'المميزات' : 'Features',
     about: isRTL ? 'عن كِنف' : 'About',
-    download: isRTL ? 'تحميل' : 'Download',
     
     // Hero
-    heroTitle: isRTL 
-      ? 'نظام عربات الأطفال الذكي' 
-      : 'Smart Baby Stroller System',
+    heroTitle: isRTL ? 'نظام عربات الأطفال الذكي' : 'Smart Baby Stroller System',
     heroSubtitle: isRTL 
-      ? 'احمِ طفلك بأحدث تقنيات المراقبة الذكية - تتبع الموقع، مراقبة البطارية، تنبيهات فورية، وأكثر'
-      : 'Protect your baby with the latest smart monitoring technology - GPS tracking, battery monitoring, instant alerts, and more',
+      ? 'احمِ طفلك بأحدث تقنيات المراقبة الذكية'
+      : 'Protect your baby with the latest smart monitoring technology',
     getStarted: isRTL ? 'ابدأ الآن' : 'Get Started',
     learnMore: isRTL ? 'اعرف المزيد' : 'Learn More',
     
     // Features
     featuresTitle: isRTL ? 'مميزات التطبيق' : 'App Features',
-    featuresSubtitle: isRTL 
-      ? 'كل ما تحتاجه لراحة بالك وأمان طفلك'
-      : 'Everything you need for peace of mind and your baby\'s safety',
+    featuresSubtitle: isRTL ? 'كل ما تحتاجه لراحة بالك وأمان طفلك' : 'Everything you need for peace of mind',
     
-    // Feature items
-    gpsTitle: isRTL ? 'تتبع الموقع' : 'GPS Tracking',
-    gpsDesc: isRTL ? 'تتبع موقع عربة طفلك في الوقت الفعلي مع دقة عالية' : 'Track your baby stroller\'s location in real-time with high accuracy',
-    
-    batteryTitle: isRTL ? 'مراقبة البطارية' : 'Battery Monitoring',
-    batteryDesc: isRTL ? 'تنبيهات فورية عند انخفاض البطارية لضمان عدم انقطاع المراقبة' : 'Instant alerts when battery is low to ensure uninterrupted monitoring',
-    
-    inclineTitle: isRTL ? 'قياس الانحدار' : 'Incline Detection',
-    inclineDesc: isRTL ? 'تنبيهات عند وجود انحدار خطر للحفاظ على سلامة طفلك' : 'Alerts for dangerous inclines to keep your baby safe',
-    
-    bluetoothTitle: isRTL ? 'اتصال بلوتوث' : 'Bluetooth Connection',
-    bluetoothDesc: isRTL ? 'اتصال سلس مع العربة عبر تقنية البلوتوث' : 'Seamless connection with the stroller via Bluetooth technology',
-    
-    alertsTitle: isRTL ? 'تنبيهات فورية' : 'Instant Alerts',
-    alertsDesc: isRTL ? 'إشعارات صوتية وبصرية لكل الأحداث المهمة' : 'Audio and visual notifications for all important events',
-    
-    multiTitle: isRTL ? 'دعم عربات متعددة' : 'Multi-Stroller Support',
-    multiDesc: isRTL ? 'إدارة ومتابعة عدة عربات في وقت واحد' : 'Manage and monitor multiple strollers simultaneously',
-    
-    // Stats
-    statsUsers: isRTL ? 'مستخدم نشط' : 'Active Users',
-    statsStrollers: isRTL ? 'عربة متصلة' : 'Connected Strollers',
-    statsAlerts: isRTL ? 'تنبيه يومي' : 'Daily Alerts',
-    statsRating: isRTL ? 'تقييم المستخدمين' : 'User Rating',
-    
-    // How it works
-    howTitle: isRTL ? 'كيف يعمل كِنف؟' : 'How KINF Works?',
-    step1Title: isRTL ? 'حمّل التطبيق' : 'Download the App',
-    step1Desc: isRTL ? 'حمل تطبيق كِنف على هاتفك الذكي' : 'Download the KINF app on your smartphone',
-    step2Title: isRTL ? 'اربط العربة' : 'Connect the Stroller',
-    step2Desc: isRTL ? 'اتصل بالعربة عبر البلوتوث بضغطة واحدة' : 'Connect to the stroller via Bluetooth with one tap',
-    step3Title: isRTL ? 'استمتع بالأمان' : 'Enjoy Peace of Mind',
-    step3Desc: isRTL ? 'راقب طفلك واحصل على تنبيهات فورية' : 'Monitor your baby and get instant alerts',
+    // App
+    dashboard: isRTL ? 'لوحة التحكم' : 'Dashboard',
+    location: isRTL ? 'الموقع' : 'Location',
+    weight: isRTL ? 'الوزن' : 'Weight',
+    battery: isRTL ? 'البطارية' : 'Battery',
+    incline: isRTL ? 'الانحدار' : 'Incline',
+    status: isRTL ? 'الحالة' : 'Status',
+    normal: isRTL ? 'طبيعي' : 'Normal',
+    warning: isRTL ? 'تحذير' : 'Warning',
+    error: isRTL ? 'خطر' : 'Error',
+    addStroller: isRTL ? 'إضافة عربة' : 'Add Stroller',
+    strollerName: isRTL ? 'اسم العربة' : 'Stroller Name',
+    add: isRTL ? 'إضافة' : 'Add',
+    cancel: isRTL ? 'إلغاء' : 'Cancel',
+    connectBluetooth: isRTL ? 'اتصال بلوتوث' : 'Connect Bluetooth',
+    disconnectBluetooth: isRTL ? 'قطع البلوتوث' : 'Disconnect Bluetooth',
+    connected: isRTL ? 'متصل' : 'Connected',
+    disconnected: isRTL ? 'غير متصل' : 'Disconnected',
+    eventHistory: isRTL ? 'سجل الأحداث' : 'Event History',
+    noEvents: isRTL ? 'لا توجد أحداث' : 'No events yet',
+    noStrollers: isRTL ? 'لا توجد عربات. أضف عربة للبدء.' : 'No strollers. Add one to get started.',
+    alerts: isRTL ? 'التنبيهات' : 'Alerts',
+    lowBattery: isRTL ? 'البطارية منخفضة!' : 'Low battery!',
+    dangerousIncline: isRTL ? 'انحدار خطر!' : 'Dangerous incline!',
+    kg: isRTL ? 'كجم' : 'kg',
+    delete: isRTL ? 'حذف' : 'Delete',
+    simulating: isRTL ? 'محاكاة' : 'Simulating',
+    realTime: isRTL ? 'مباشر' : 'Real-time',
+    mute: isRTL ? 'كتم الصوت' : 'Mute',
+    unmute: isRTL ? 'تشغيل الصوت' : 'Unmute',
+    clearHistory: isRTL ? 'مسح السجل' : 'Clear History',
+    back: isRTL ? 'العودة' : 'Back',
     
     // About
     aboutTitle: isRTL ? 'عن كِنف' : 'About KINF',
     aboutDesc: isRTL 
-      ? 'كِنف هو نظام ذكي متكامل لمراقبة عربات الأطفال، صُمم خصيصاً لتوفير راحة البال والأمان لكل أم وأب. يجمع بين أحدث تقنيات الإنترنت والأجهزة الذكية لحماية أعز ما نملك - أطفالنا.'
-      : 'KINF is an integrated smart system for monitoring baby strollers, designed specifically to provide peace of mind and safety for every parent. It combines the latest internet and smart device technologies to protect what we cherish most - our children.',
-    
-    // CTA
-    ctaTitle: isRTL ? 'جاهز لحماية طفلك؟' : 'Ready to Protect Your Baby?',
-    ctaDesc: isRTL 
-      ? 'انضم إلى آلاف العائلات التي تثق بكِنف'
-      : 'Join thousands of families who trust KINF',
+      ? 'كِنف هو نظام ذكي متكامل لمراقبة عربات الأطفال، صُمم خصيصاً لتوفير راحة البال والأمان لكل أم وأب.'
+      : 'KINF is an integrated smart system for monitoring baby strollers, designed to provide peace of mind for every parent.',
     
     // Footer
     footerRights: isRTL ? 'جميع الحقوق محفوظة' : 'All rights reserved',
     footerMade: isRTL ? 'صُنع بـ ❤️ لأطفالنا' : 'Made with ❤️ for our children',
   }
 
+  // Features for landing page
   const features = [
-    { icon: MapPin, titleAr: t.gpsTitle, titleEn: t.gpsTitle, descAr: t.gpsDesc, descEn: t.gpsDesc, delay: 0 },
-    { icon: Battery, titleAr: t.batteryTitle, titleEn: t.batteryTitle, descAr: t.batteryDesc, descEn: t.batteryDesc, delay: 100 },
-    { icon: TrendingUp, titleAr: t.inclineTitle, titleEn: t.inclineTitle, descAr: t.inclineDesc, descEn: t.inclineDesc, delay: 200 },
-    { icon: Bluetooth, titleAr: t.bluetoothTitle, titleEn: t.bluetoothTitle, descAr: t.bluetoothDesc, descEn: t.bluetoothDesc, delay: 300 },
-    { icon: Bell, titleAr: t.alertsTitle, titleEn: t.alertsTitle, descAr: t.alertsDesc, descEn: t.alertsDesc, delay: 400 },
-    { icon: Baby, titleAr: t.multiTitle, titleEn: t.multiTitle, descAr: t.multiDesc, descEn: t.multiDesc, delay: 500 },
+    { icon: MapPin, title: isRTL ? 'تتبع الموقع' : 'GPS Tracking', desc: isRTL ? 'تتبع موقع عربة طفلك في الوقت الفعلي' : 'Track your stroller in real-time', delay: 0 },
+    { icon: Battery, title: isRTL ? 'مراقبة البطارية' : 'Battery Monitoring', desc: isRTL ? 'تنبيهات فورية عند انخفاض البطارية' : 'Instant low battery alerts', delay: 100 },
+    { icon: TrendingUp, title: isRTL ? 'قياس الانحدار' : 'Incline Detection', desc: isRTL ? 'تنبيهات عند وجود انحدار خطر' : 'Dangerous incline alerts', delay: 200 },
+    { icon: Bluetooth, title: isRTL ? 'اتصال بلوتوث' : 'Bluetooth Connection', desc: isRTL ? 'اتصال سلس مع العربة' : 'Seamless stroller connection', delay: 300 },
+    { icon: Bell, title: isRTL ? 'تنبيهات فورية' : 'Instant Alerts', desc: isRTL ? 'إشعارات صوتية وبصرية' : 'Audio and visual notifications', delay: 400 },
+    { icon: Baby, title: isRTL ? 'دعم عربات متعددة' : 'Multi-Stroller Support', desc: isRTL ? 'إدارة عدة عربات في وقت واحد' : 'Manage multiple strollers', delay: 500 },
   ]
 
-  return (
-    <div 
-      className="min-h-screen overflow-x-hidden"
-      dir={isRTL ? 'rtl' : 'ltr'}
-      style={{ 
-        fontFamily: isRTL ? "'Cairo', sans-serif" : undefined,
-        background: 'linear-gradient(135deg, #2D3A2B 0%, #1E2B1C 50%, #2D3A2B 100%)'
-      }}
-    >
-      <ParticleBackground />
+  // Play alert sound
+  const playAlertSound = useCallback((type: 'warning' | 'error') => {
+    if (isMuted) return
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      }
       
-      {/* Navigation */}
-      <nav 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? 'glass shadow-2xl' : ''
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <KINFLogo size={48} />
+      const ctx = audioContextRef.current
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      
+      oscillator.frequency.value = type === 'error' ? 800 : 600
+      oscillator.type = 'sine'
+      gainNode.gain.value = 0.3
+      
+      oscillator.start()
+      oscillator.stop(ctx.currentTime + 0.2)
+    } catch (e) {
+      console.log('Audio not supported')
+    }
+  }, [isMuted])
+
+  // Add event log
+  const addEventLog = useCallback((type: EventLog['type'], message: string, messageAr: string, strollerName: string) => {
+    const newLog: EventLog = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      type,
+      message,
+      messageAr,
+      strollerName,
+    }
+    setEventLogs(prev => [newLog, ...prev].slice(0, 50))
+  }, [])
+
+  // Show alert popup
+  const showAlert = useCallback((message: string, type: 'warning' | 'error') => {
+    setAlertPopup({ show: true, message, type })
+    playAlertSound(type)
+    setTimeout(() => setAlertPopup(null), 3000)
+  }, [playAlertSound])
+
+  // Data simulation effect - EACH stroller has its own independent interval
+  useEffect(() => {
+    const currentIds = new Set(strollers.map(s => s.id))
+    intervalsRef.current.forEach((interval, id) => {
+      if (!currentIds.has(id)) {
+        clearInterval(interval)
+        intervalsRef.current.delete(id)
+      }
+    })
+
+    strollers.forEach(stroller => {
+      if (!intervalsRef.current.has(stroller.id)) {
+        const randomInterval = 3000 + Math.random() * 2000
+        
+        const interval = setInterval(() => {
+          setStrollers(prev => {
+            const currentStroller = prev.find(s => s.id === stroller.id)
+            if (!currentStroller) return prev
             
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#B8B0A0' }}>
-                {t.features}
-              </a>
-              <a href="#about" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#B8B0A0' }}>
-                {t.about}
-              </a>
-              <Button
-                onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-                variant="ghost"
-                size="sm"
-                className="gap-2 rounded-xl"
-                style={{ color: '#E8DCC0' }}
-              >
-                <Globe className="w-4 h-4" />
-                {language === 'ar' ? 'EN' : 'عربي'}
-              </Button>
-              <Button 
-                className="rounded-xl px-6"
-                style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-              >
-                {t.download}
-              </Button>
-            </div>
+            const newData = generateRandomData(currentStroller)
+            
+            if (currentStroller.battery > 15 && newData.battery <= 15) {
+              const msgAr = t.lowBattery
+              const msgEn = 'Low battery!'
+              addEventLog('warning', msgEn, msgAr, stroller.name)
+              showAlert(msgAr, 'warning')
+            } else if (Math.abs(currentStroller.incline) < 20 && Math.abs(newData.incline) >= 20) {
+              const msgAr = t.dangerousIncline
+              const msgEn = 'Dangerous incline!'
+              addEventLog('error', msgEn, msgAr, stroller.name)
+              showAlert(msgAr, 'error')
+            }
+            
+            return prev.map(s => s.id === stroller.id ? newData : s)
+          })
+        }, randomInterval)
+        
+        intervalsRef.current.set(stroller.id, interval)
+      }
+    })
 
-            {/* Mobile Menu Button */}
-            <div className="flex md:hidden items-center gap-2">
-              <Button
-                onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-                variant="ghost"
-                size="icon"
-                className="rounded-xl"
-                style={{ color: '#E8DCC0' }}
-              >
-                <Globe className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                variant="ghost"
-                size="icon"
-                className="rounded-xl"
-                style={{ color: '#E8DCC0' }}
-              >
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
-            </div>
-          </div>
-        </div>
+    return () => {
+      intervalsRef.current.forEach(interval => clearInterval(interval))
+    }
+  }, [strollers.map(s => s.id).join(','), addEventLog, showAlert, t])
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden glass border-t" style={{ borderColor: 'rgba(232, 220, 192, 0.1)' }}>
-            <div className="px-4 py-4 space-y-3">
-              <a href="#features" className="block py-2 text-sm" style={{ color: '#B8B0A0' }}>
-                {t.features}
-              </a>
-              <a href="#about" className="block py-2 text-sm" style={{ color: '#B8B0A0' }}>
-                {t.about}
-              </a>
-              <Button 
-                className="w-full rounded-xl"
-                style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-              >
-                {t.download}
-              </Button>
-            </div>
-          </div>
-        )}
-      </nav>
+  // Add stroller
+  const handleAddStroller = () => {
+    if (!newStrollerName.trim()) return
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 px-4">
-        <div className="max-w-4xl mx-auto text-center z-10">
-          {/* Animated Logo */}
-          <div className="animate-fade-in-scale mb-8">
-            <div className="inline-block p-4 rounded-3xl animate-pulse-glow" style={{ background: 'rgba(45, 58, 43, 0.5)' }}>
-              <KINFLogo size={100} showText={false} />
-            </div>
-          </div>
-          
-          {/* Title */}
-          <h1 
-            className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up text-shadow"
-            style={{ color: '#E8DCC0' }}
-          >
-            {t.heroTitle}
-          </h1>
-          
-          {/* Arabic Name */}
-          <div 
-            className="text-3xl sm:text-4xl font-bold mb-6 animate-fade-in-up delay-100"
-            style={{ color: '#7A9A7A', fontFamily: "'Cairo', sans-serif" }}
-          >
-            كِنف
-          </div>
-          
-          {/* Subtitle */}
-          <p 
-            className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200"
-            style={{ color: '#B8B0A0' }}
-          >
-            {t.heroSubtitle}
-          </p>
-          
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-300">
-            <Button 
-              size="lg"
-              className="rounded-2xl px-8 h-14 text-lg font-semibold group hover-lift"
-              style={{ background: '#E8DCC0', color: '#2D3A2B' }}
-            >
-              {t.getStarted}
-              <ArrowRight className={`w-5 h-5 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'} group-hover:translate-x-1 transition-transform`} />
-            </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="rounded-2xl px-8 h-14 text-lg border-2 hover-lift"
-              style={{ borderColor: '#E8DCC0', color: '#E8DCC0' }}
-            >
-              {t.learnMore}
-            </Button>
-          </div>
-          
-          {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce-subtle">
-            <ChevronDown className="w-8 h-8" style={{ color: '#B8B0A0' }} />
-          </div>
-        </div>
-      </section>
+    const addressIndex = Math.floor(Math.random() * simulatedAddresses.length)
+    
+    const newStroller: StrollerData = {
+      id: Date.now().toString(),
+      name: newStrollerName.trim(),
+      location: {
+        lat: 24.7136 + (Math.random() - 0.5) * 0.05,
+        lng: 46.6753 + (Math.random() - 0.5) * 0.05,
+        address: simulatedAddresses[addressIndex],
+      },
+      weight: Number((3.5 + Math.random() * 5).toFixed(1)),
+      battery: Number((70 + Math.random() * 30).toFixed(0)),
+      incline: Number(((Math.random() - 0.5) * 10).toFixed(1)),
+      status: 'normal',
+      bluetoothConnected: false,
+    }
 
-      {/* Stats Section */}
-      <section className="py-16 px-4 relative z-10">
-        <div className="max-w-5xl mx-auto">
-          <div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 p-8 rounded-3xl glass"
-          >
-            <StatCounter value={5000} suffix="+" labelAr={t.statsUsers} labelEn={t.statsUsers} language={language} />
-            <StatCounter value={8000} suffix="+" labelAr={t.statsStrollers} labelEn={t.statsStrollers} language={language} />
-            <StatCounter value={50000} suffix="+" labelAr={t.statsAlerts} labelEn={t.statsAlerts} language={language} />
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-4xl md:text-5xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
-                <Star className="w-8 h-8 fill-current" style={{ color: '#FFD700' }} />
-                4.9
+    setStrollers(prev => [...prev, newStroller])
+    addEventLog('success', `Stroller "${newStrollerName}" added`, `تمت إضافة العربة "${newStrollerName}"`, newStrollerName)
+    setNewStrollerName('')
+    setIsAddDialogOpen(false)
+  }
+
+  // Delete stroller
+  const handleDeleteStroller = (id: string) => {
+    const stroller = strollers.find(s => s.id === id)
+    if (stroller) {
+      setStrollers(prev => prev.filter(s => s.id !== id))
+      addEventLog('info', `Stroller "${stroller.name}" removed`, `تم حذف العربة "${stroller.name}"`, stroller.name)
+    }
+  }
+
+  // Toggle Bluetooth
+  const toggleBluetooth = (id: string) => {
+    setStrollers(prev => prev.map(s => {
+      if (s.id === id) {
+        const newConnected = !s.bluetoothConnected
+        addEventLog(
+          newConnected ? 'success' : 'info',
+          newConnected ? `Bluetooth connected to ${s.name}` : `Bluetooth disconnected from ${s.name}`,
+          newConnected ? `تم الاتصال بالبلوتوث مع ${s.name}` : `تم قطع البلوتوث مع ${s.name}`,
+          s.name
+        )
+        return { ...s, bluetoothConnected: newConnected }
+      }
+      return s
+    }))
+  }
+
+  // Clear history
+  const clearHistory = () => {
+    setEventLogs([])
+  }
+
+  // Format time
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
+  // Get status color
+  const getStatusColor = (status: StrollerData['status']) => {
+    switch (status) {
+      case 'normal': return 'bg-[#7A9A7A]'
+      case 'warning': return 'bg-[#B8A060]'
+      case 'error': return 'bg-[#8B5A5A]'
+    }
+  }
+
+  // ============== LANDING PAGE ==============
+  if (currentView === 'landing') {
+    return (
+      <div 
+        className="min-h-screen overflow-x-hidden"
+        dir={isRTL ? 'rtl' : 'ltr'}
+        style={{ 
+          fontFamily: isRTL ? "'Cairo', sans-serif" : undefined,
+          background: 'linear-gradient(135deg, #2D3A2B 0%, #1E2B1C 50%, #2D3A2B 100%)'
+        }}
+      >
+        <ParticleBackground />
+        
+        {/* Navigation */}
+        <nav 
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+            scrolled ? 'glass shadow-2xl' : ''
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 md:h-20">
+              <KINFLogo size={48} />
+              
+              {/* Desktop Menu */}
+              <div className="hidden md:flex items-center gap-8">
+                <a href="#features" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#B8B0A0' }}>
+                  {t.features}
+                </a>
+                <a href="#about" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#B8B0A0' }}>
+                  {t.about}
+                </a>
+                <Button
+                  onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 rounded-xl"
+                  style={{ color: '#E8DCC0' }}
+                >
+                  <Globe className="w-4 h-4" />
+                  {language === 'ar' ? 'EN' : 'عربي'}
+                </Button>
+                <Button 
+                  className="rounded-xl px-6"
+                  style={{ background: '#E8DCC0', color: '#2D3A2B' }}
+                  onClick={() => setCurrentView('app')}
+                >
+                  {t.getStarted}
+                </Button>
               </div>
-              <div className="text-sm" style={{ color: '#B8B0A0' }}>
-                {t.statsRating}
+
+              {/* Mobile Menu Button */}
+              <div className="flex md:hidden items-center gap-2">
+                <Button
+                  onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl"
+                  style={{ color: '#E8DCC0' }}
+                >
+                  <Globe className="w-5 h-5" />
+                </Button>
+                <Button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl"
+                  style={{ color: '#E8DCC0' }}
+                >
+                  {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </Button>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <AnimatedSection className="text-center mb-16">
-            <Badge 
-              className="mb-4 px-4 py-2 rounded-xl"
-              style={{ background: 'rgba(232, 220, 192, 0.1)', color: '#E8DCC0' }}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t.featuresTitle}
-            </Badge>
-            <h2 
-              className="text-3xl sm:text-4xl font-bold mb-4"
-              style={{ color: '#E8DCC0' }}
-            >
-              {t.featuresSubtitle}
-            </h2>
-          </AnimatedSection>
-          
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
-              <AnimatedSection key={index} delay={index * 100}>
-                <FeatureCard 
-                  icon={feature.icon}
-                  titleAr={feature.titleAr}
-                  titleEn={feature.titleEn}
-                  descAr={feature.descAr}
-                  descEn={feature.descEn}
-                  delay={feature.delay}
-                  language={language}
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden glass border-t" style={{ borderColor: 'rgba(232, 220, 192, 0.1)' }}>
+              <div className="px-4 py-4 space-y-3">
+                <a href="#features" className="block py-2 text-sm" style={{ color: '#B8B0A0' }}>
+                  {t.features}
+                </a>
+                <a href="#about" className="block py-2 text-sm" style={{ color: '#B8B0A0' }}>
+                  {t.about}
+                </a>
+                <Button 
+                  className="w-full rounded-xl"
+                  style={{ background: '#E8DCC0', color: '#2D3A2B' }}
+                  onClick={() => { setCurrentView('app'); setIsMenuOpen(false); }}
+                >
+                  {t.getStarted}
+                </Button>
+              </div>
+            </div>
+          )}
+        </nav>
+
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex items-center justify-center pt-20 px-4">
+          <div className="max-w-4xl mx-auto text-center z-10">
+            {/* Animated Logo */}
+            <div className="animate-fade-in-scale mb-8">
+              <div className="inline-block p-4 rounded-3xl animate-pulse-glow" style={{ background: 'rgba(45, 58, 43, 0.5)' }}>
+                <img 
+                  src="/favicon.png" 
+                  alt="KINF Logo" 
+                  className="rounded-2xl"
+                  style={{ width: 120, height: 120, objectFit: 'contain' }}
                 />
-              </AnimatedSection>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 px-4 relative z-10">
-        <div className="max-w-5xl mx-auto">
-          <AnimatedSection className="text-center mb-16">
-            <h2 
-              className="text-3xl sm:text-4xl font-bold"
+              </div>
+            </div>
+            
+            {/* Title */}
+            <h1 
+              className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up text-shadow"
               style={{ color: '#E8DCC0' }}
             >
-              {t.howTitle}
-            </h2>
-          </AnimatedSection>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { num: '01', title: t.step1Title, desc: t.step1Desc, icon: Smartphone },
-              { num: '02', title: t.step2Title, desc: t.step2Desc, icon: Bluetooth },
-              { num: '03', title: t.step3Title, desc: t.step3Desc, icon: Shield },
-            ].map((step, index) => (
-              <AnimatedSection key={index} delay={index * 200}>
-                <div className="relative text-center p-8 rounded-3xl glass hover-lift">
-                  <div 
-                    className="text-6xl font-bold mb-4 opacity-20"
-                    style={{ color: '#E8DCC0' }}
-                  >
-                    {step.num}
-                  </div>
-                  <div 
-                    className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
-                    style={{ background: 'linear-gradient(135deg, rgba(232, 220, 192, 0.2), rgba(122, 154, 122, 0.2))' }}
-                  >
-                    <step.icon className="w-8 h-8" style={{ color: '#E8DCC0' }} />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
-                    {step.title}
-                  </h3>
-                  <p className="text-sm" style={{ color: '#B8B0A0' }}>
-                    {step.desc}
-                  </p>
-                </div>
-              </AnimatedSection>
-            ))}
+              {t.heroTitle}
+            </h1>
+            
+            {/* Arabic Name */}
+            <div 
+              className="text-3xl sm:text-4xl font-bold mb-6 animate-fade-in-up delay-100"
+              style={{ color: '#7A9A7A', fontFamily: "'Cairo', sans-serif" }}
+            >
+              كِنف
+            </div>
+            
+            {/* Subtitle */}
+            <p 
+              className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200"
+              style={{ color: '#B8B0A0' }}
+            >
+              {t.heroSubtitle}
+            </p>
+            
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-300">
+              <Button 
+                size="lg"
+                className="rounded-2xl px-8 h-14 text-lg font-semibold group hover-lift"
+                style={{ background: '#E8DCC0', color: '#2D3A2B' }}
+                onClick={() => setCurrentView('app')}
+              >
+                {t.getStarted}
+                <ArrowRight className={`w-5 h-5 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'} group-hover:translate-x-1 transition-transform`} />
+              </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="rounded-2xl px-8 h-14 text-lg border-2 hover-lift"
+                style={{ borderColor: '#E8DCC0', color: '#E8DCC0' }}
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                {t.learnMore}
+              </Button>
+            </div>
+            
+            {/* Scroll Indicator */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce-subtle">
+              <ChevronDown className="w-8 h-8" style={{ color: '#B8B0A0' }} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* About Section */}
-      <section id="about" className="py-20 px-4 relative z-10">
-        <div className="max-w-4xl mx-auto">
-          <AnimatedSection>
-            <Card className="border-0 rounded-3xl overflow-hidden glass">
-              <CardContent className="p-8 md:p-12">
-                <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="flex-shrink-0">
-                    <div className="animate-float">
-                      <KINFLogo size={120} showText={false} />
-                    </div>
-                  </div>
-                  <div className="text-center md:text-start">
-                    <h2 
-                      className="text-3xl sm:text-4xl font-bold mb-4"
+        {/* Features Section */}
+        <section id="features" className="py-20 px-4 relative z-10">
+          <div className="max-w-6xl mx-auto">
+            <AnimatedSection className="text-center mb-16">
+              <Badge 
+                className="mb-4 px-4 py-2 rounded-xl"
+                style={{ background: 'rgba(232, 220, 192, 0.1)', color: '#E8DCC0' }}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {t.featuresTitle}
+              </Badge>
+              <h2 
+                className="text-3xl sm:text-4xl font-bold mb-4"
+                style={{ color: '#E8DCC0' }}
+              >
+                {t.featuresSubtitle}
+              </h2>
+            </AnimatedSection>
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((feature, index) => (
+                <AnimatedSection key={index} delay={index * 100}>
+                  <FeatureCard 
+                    icon={feature.icon}
+                    title={feature.title}
+                    desc={feature.desc}
+                    delay={feature.delay}
+                    language={language}
+                  />
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-20 px-4 relative z-10">
+          <div className="max-w-5xl mx-auto">
+            <AnimatedSection className="text-center mb-16">
+              <h2 
+                className="text-3xl sm:text-4xl font-bold"
+                style={{ color: '#E8DCC0' }}
+              >
+                {isRTL ? 'كيف يعمل كِنف؟' : 'How KINF Works?'}
+              </h2>
+            </AnimatedSection>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { num: '01', title: isRTL ? 'حمّل التطبيق' : 'Download the App', desc: isRTL ? 'حمل تطبيق كِنف على هاتفك' : 'Download the KINF app', icon: Smartphone },
+                { num: '02', title: isRTL ? 'اربط العربة' : 'Connect the Stroller', desc: isRTL ? 'اتصل بالعربة عبر البلوتوث' : 'Connect via Bluetooth', icon: Bluetooth },
+                { num: '03', title: isRTL ? 'استمتع بالأمان' : 'Enjoy Peace of Mind', desc: isRTL ? 'راقب طفلك واحصل على تنبيهات' : 'Monitor and get alerts', icon: Shield },
+              ].map((step, index) => (
+                <AnimatedSection key={index} delay={index * 200}>
+                  <div className="relative text-center p-8 rounded-3xl glass hover-lift">
+                    <div 
+                      className="text-6xl font-bold mb-4 opacity-20"
                       style={{ color: '#E8DCC0' }}
                     >
-                      {t.aboutTitle}
-                    </h2>
-                    <p 
-                      className="text-lg leading-relaxed"
-                      style={{ color: '#B8B0A0' }}
+                      {step.num}
+                    </div>
+                    <div 
+                      className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
+                      style={{ background: 'linear-gradient(135deg, rgba(232, 220, 192, 0.2), rgba(122, 154, 122, 0.2))' }}
                     >
-                      {t.aboutDesc}
+                      <step.icon className="w-8 h-8" style={{ color: '#E8DCC0' }} />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2" style={{ color: '#E8DCC0' }}>
+                      {step.title}
+                    </h3>
+                    <p className="text-sm" style={{ color: '#B8B0A0' }}>
+                      {step.desc}
                     </p>
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-6">
-                      {[
-                        isRTL ? 'تتبع ذكي' : 'Smart Tracking',
-                        isRTL ? 'أمان 24/7' : '24/7 Safety',
-                        isRTL ? 'تنبيهات فورية' : 'Instant Alerts',
-                      ].map((tag, i) => (
-                        <Badge 
-                          key={i}
-                          className="px-4 py-2 rounded-xl"
-                          style={{ background: 'rgba(122, 154, 122, 0.3)', color: '#E8DCC0' }}
-                        >
-                          <Check className="w-3 h-3 mr-2" />
-                          {tag}
-                        </Badge>
-                      ))}
+                  </div>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section id="about" className="py-20 px-4 relative z-10">
+          <div className="max-w-4xl mx-auto">
+            <AnimatedSection>
+              <Card className="border-0 rounded-3xl overflow-hidden glass">
+                <CardContent className="p-8 md:p-12">
+                  <div className="flex flex-col md:flex-row items-center gap-8">
+                    <div className="flex-shrink-0">
+                      <div className="animate-float">
+                        <img 
+                          src="/favicon.png" 
+                          alt="KINF Logo" 
+                          className="rounded-2xl"
+                          style={{ width: 120, height: 120, objectFit: 'contain' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="text-center md:text-start">
+                      <h2 
+                        className="text-3xl sm:text-4xl font-bold mb-4"
+                        style={{ color: '#E8DCC0' }}
+                      >
+                        {t.aboutTitle}
+                      </h2>
+                      <p 
+                        className="text-lg leading-relaxed"
+                        style={{ color: '#B8B0A0' }}
+                      >
+                        {t.aboutDesc}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-6">
+                        {[
+                          isRTL ? 'تتبع ذكي' : 'Smart Tracking',
+                          isRTL ? 'أمان 24/7' : '24/7 Safety',
+                          isRTL ? 'تنبيهات فورية' : 'Instant Alerts',
+                        ].map((tag, i) => (
+                          <Badge 
+                            key={i}
+                            className="px-4 py-2 rounded-xl"
+                            style={{ background: 'rgba(122, 154, 122, 0.3)', color: '#E8DCC0' }}
+                          >
+                            <Check className="w-3 h-3 mr-2" />
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </AnimatedSection>
-        </div>
-      </section>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
+          </div>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <AnimatedSection>
-            <div 
-              className="p-12 rounded-3xl relative overflow-hidden"
-              style={{ 
-                background: 'linear-gradient(135deg, rgba(122, 154, 122, 0.3), rgba(232, 220, 192, 0.1))',
-              }}
-            >
-              {/* Background decoration */}
+        {/* CTA Section */}
+        <section className="py-20 px-4 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <AnimatedSection>
               <div 
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23E8DCC0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                className="p-12 rounded-3xl relative overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(122, 154, 122, 0.3), rgba(232, 220, 192, 0.1))',
                 }}
-              />
-              
-              <div className="relative z-10">
+              >
                 <Heart className="w-12 h-12 mx-auto mb-6 animate-pulse" style={{ color: '#E8DCC0' }} />
                 <h2 
                   className="text-3xl sm:text-4xl font-bold mb-4"
                   style={{ color: '#E8DCC0' }}
                 >
-                  {t.ctaTitle}
+                  {isRTL ? 'جاهز لحماية طفلك؟' : 'Ready to Protect Your Baby?'}
                 </h2>
                 <p 
                   className="text-lg mb-8"
                   style={{ color: '#B8B0A0' }}
                 >
-                  {t.ctaDesc}
+                  {isRTL ? 'انضم إلى آلاف العائلات التي تثق بكِنف' : 'Join thousands of families who trust KINF'}
                 </p>
                 <Button 
                   size="lg"
                   className="rounded-2xl px-10 h-14 text-lg font-semibold hover-lift"
                   style={{ background: '#E8DCC0', color: '#2D3A2B' }}
+                  onClick={() => setCurrentView('app')}
                 >
                   {t.getStarted}
                   <ArrowRight className={`w-5 h-5 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
                 </Button>
               </div>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
+            </AnimatedSection>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 relative z-10 border-t" style={{ borderColor: 'rgba(232, 220, 192, 0.1)' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <KINFLogo size={40} />
+        {/* Footer */}
+        <footer className="py-8 px-4 relative z-10 border-t" style={{ borderColor: 'rgba(232, 220, 192, 0.1)' }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <KINFLogo size={40} />
+              <p className="text-sm text-center" style={{ color: '#B8B0A0' }}>
+                © 2024 KINFكِنف. {t.footerRights}
+              </p>
+              <div className="flex items-center gap-2 text-sm" style={{ color: '#B8B0A0' }}>
+                <Heart className="w-4 h-4 fill-red-400 text-red-400" />
+                {t.footerMade}
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    )
+  }
+
+  // ============== APP VIEW ==============
+  return (
+    <div 
+      className="min-h-screen"
+      dir={isRTL ? 'rtl' : 'ltr'}
+      style={{ 
+        fontFamily: isRTL ? "'Cairo', 'Tajawal', sans-serif" : undefined,
+        background: 'linear-gradient(135deg, #2D3A2B 0%, #4F634F 50%, #2D3A2B 100%)'
+      }}
+    >
+      {/* Alert Popup */}
+      {alertPopup?.show && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+          <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
+            alertPopup.type === 'error' 
+              ? 'bg-[#8B5A5A] text-[#E8DCC0]' 
+              : 'bg-[#B8A060] text-[#2D3A2B]'
+          }`}>
+            <AlertTriangle className="w-6 h-6 animate-pulse" />
+            <span className="font-semibold">{alertPopup.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-lg border-b border-[#5A6A5A]/30" style={{ background: 'rgba(45, 58, 43, 0.9)' }}>
+        <div className="max-w-md mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/favicon.png" 
+                alt="KINF Logo" 
+                className="rounded-xl"
+                style={{ width: 48, height: 48, objectFit: 'contain' }}
+              />
+              <div>
+                <h1 className="text-xl font-bold text-[#E8DCC0] tracking-wider">
+                  KINF
+                </h1>
+                <div className="flex items-center gap-1.5 text-xs text-[#B8B0A0]">
+                  <span className={`w-2 h-2 rounded-full bg-[#7A9A7A] animate-pulse`}></span>
+                  <span>{t.realTime}</span>
+                  <span className="text-[#6A8A6A]">•</span>
+                  <span>{t.simulating}</span>
+                </div>
+              </div>
+            </div>
             
-            <p className="text-sm text-center" style={{ color: '#B8B0A0' }}>
-              © 2024 KINFكِنف. {t.footerRights}
-            </p>
-            
-            <div className="flex items-center gap-2 text-sm" style={{ color: '#B8B0A0' }}>
-              <Heart className="w-4 h-4 fill-red-400 text-red-400" />
-              {t.footerMade}
+            <div className="flex items-center gap-2">
+              {/* Mute Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMuted(!isMuted)}
+                className="rounded-xl hover:bg-[#4F634F] text-[#E8DCC0]"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-5 h-5 text-[#B8B0A0]" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-[#E8DCC0]" />
+                )}
+              </Button>
+              
+              {/* Language Switcher */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+                className="rounded-xl hover:bg-[#4F634F] text-[#E8DCC0]"
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
+
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentView('landing')}
+                className="rounded-xl hover:bg-[#4F634F] text-[#E8DCC0] text-xs"
+              >
+                {t.back}
+              </Button>
             </div>
           </div>
         </div>
-      </footer>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-md mx-auto px-4 py-6 pb-24">
+        {/* Stats Summary */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#E8DCC0]">{strollers.length}</div>
+            <div className="text-xs text-[#B8B0A0]">
+              {language === 'ar' ? 'العربات' : 'Strollers'}
+            </div>
+          </div>
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#7A9A7A]">
+              {strollers.filter(s => s.status === 'normal').length}
+            </div>
+            <div className="text-xs text-[#B8B0A0]">{t.normal}</div>
+          </div>
+          <div className="rounded-2xl p-3 text-center border border-[#5A6A5A]/30" style={{ background: 'rgba(68, 87, 68, 0.8)' }}>
+            <div className="text-2xl font-bold text-[#B8A060]">
+              {strollers.filter(s => s.status !== 'normal').length}
+            </div>
+            <div className="text-xs text-[#B8B0A0]">{t.alerts}</div>
+          </div>
+        </div>
+
+        {/* Strollers List */}
+        {strollers.length === 0 ? (
+          <Card className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden" style={{ background: 'rgba(68, 87, 68, 0.6)' }}>
+            <CardContent className="py-12 text-center">
+              <img 
+                src="/favicon.png" 
+                alt="KINF Logo" 
+                className="mx-auto mb-4 opacity-50 rounded-xl"
+                style={{ width: 64, height: 64, objectFit: 'contain' }}
+              />
+              <p className="text-[#B8B0A0]">{t.noStrollers}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {strollers.map((stroller, index) => (
+              <Card 
+                key={stroller.id} 
+                className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden animate-fade-in"
+                style={{ background: 'rgba(68, 87, 68, 0.6)', animationDelay: `${index * 100}ms` }}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-bold text-[#E8DCC0] flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${getStatusColor(stroller.status)} animate-pulse`} />
+                      {stroller.name}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={stroller.bluetoothConnected ? "default" : "secondary"}
+                        className={`rounded-xl cursor-pointer transition-all ${
+                          stroller.bluetoothConnected 
+                            ? 'bg-[#7A9A7A] hover:bg-[#6A8A6A] text-[#E8DCC0]' 
+                            : 'bg-[#4F634F] text-[#B8B0A0]'
+                        }`}
+                        onClick={() => toggleBluetooth(stroller.id)}
+                      >
+                        {stroller.bluetoothConnected ? (
+                          <Bluetooth className="w-3.5 h-3.5 mr-1" />
+                        ) : (
+                          <BluetoothOff className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        {stroller.bluetoothConnected ? t.connected : t.disconnected}
+                      </Badge>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteStroller(stroller.id)}
+                        className="rounded-xl hover:bg-[#8B5A5A]/30 h-8 w-8"
+                      >
+                        <Trash2 className="w-4 h-4 text-[#8B5A5A]" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-xs font-medium">{t.location}</span>
+                      </div>
+                      <div className="text-xs text-[#E8DCC0] truncate">
+                        {stroller.location.address}
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
+                        <Scale className="w-4 h-4" />
+                        <span className="text-xs font-medium">{t.weight}</span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-[#E8DCC0]">
+                          {stroller.weight.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-[#B8B0A0]">{t.kg}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
+                        <Battery className="w-4 h-4" />
+                        <span className="text-xs font-medium">{t.battery}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-baseline gap-1">
+                          <span className={`text-xl font-bold ${stroller.battery <= 15 ? 'text-[#8B5A5A]' : 'text-[#E8DCC0]'}`}>
+                            {stroller.battery.toFixed(0)}
+                          </span>
+                          <span className="text-xs text-[#B8B0A0]">%</span>
+                        </div>
+                        <Progress 
+                          value={stroller.battery} 
+                          className={`h-1.5 ${stroller.battery <= 15 ? '[&>div]:bg-[#8B5A5A]' : '[&>div]:bg-[#7A9A7A]'}`}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-2xl p-3" style={{ background: 'rgba(90, 122, 90, 0.3)' }}>
+                      <div className="flex items-center gap-2 text-[#B8B0A0] mb-1">
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="text-xs font-medium">{t.incline}</span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className={`text-xl font-bold ${Math.abs(stroller.incline) > 15 ? 'text-[#8B5A5A] animate-pulse' : 'text-[#E8DCC0]'}`}>
+                          {stroller.incline > 0 ? '+' : ''}{stroller.incline.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-[#B8B0A0]">°</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-2xl"
+                    style={{ 
+                      background: stroller.status === 'normal' 
+                        ? 'rgba(122, 154, 122, 0.3)' 
+                        : stroller.status === 'warning'
+                        ? 'rgba(184, 160, 96, 0.3)'
+                        : 'rgba(139, 90, 90, 0.3)'
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      {stroller.status === 'normal' ? (
+                        <CheckCircle className="w-5 h-5 text-[#7A9A7A]" />
+                      ) : stroller.status === 'warning' ? (
+                        <AlertTriangle className="w-5 h-5 text-[#B8A060]" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-[#8B5A5A]" />
+                      )}
+                      <span className={`font-medium ${
+                        stroller.status === 'normal' 
+                          ? 'text-[#7A9A7A]' 
+                          : stroller.status === 'warning'
+                          ? 'text-[#B8A060]'
+                          : 'text-[#8B5A5A]'
+                      }`}>
+                        {t[stroller.status]}
+                      </span>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={`rounded-xl ${
+                        stroller.status === 'normal' 
+                          ? 'border-[#7A9A7A] text-[#7A9A7A]' 
+                          : stroller.status === 'warning'
+                          ? 'border-[#B8A060] text-[#B8A060]'
+                          : 'border-[#8B5A5A] text-[#8B5A5A]'
+                      }`}
+                    >
+                      {t.status}
+                    </Badge>
+                  </div>
+                  
+                  <Button
+                    onClick={() => toggleBluetooth(stroller.id)}
+                    className={`w-full rounded-2xl h-11 ${
+                      stroller.bluetoothConnected
+                        ? 'bg-[#7A9A7A] hover:bg-[#6A8A6A] text-[#E8DCC0]'
+                        : 'bg-[#E8DCC0] hover:bg-[#D8D0C0] text-[#2D3A2B]'
+                    }`}
+                  >
+                    {stroller.bluetoothConnected ? (
+                      <>
+                        <BluetoothOff className="w-4 h-4 mr-2" />
+                        {t.disconnectBluetooth}
+                      </>
+                    ) : (
+                      <>
+                        <Bluetooth className="w-4 h-4 mr-2" />
+                        {t.connectBluetooth}
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Event History */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-[#E8DCC0] flex items-center gap-2">
+              <History className="w-5 h-5 text-[#B8B0A0]" />
+              {t.eventHistory}
+            </h2>
+            {eventLogs.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearHistory}
+                className="text-xs text-[#B8B0A0] hover:text-[#E8DCC0] hover:bg-[#4F634F]"
+              >
+                {t.clearHistory}
+              </Button>
+            )}
+          </div>
+          
+          <Card className="border border-[#5A6A5A]/30 rounded-3xl overflow-hidden" style={{ background: 'rgba(68, 87, 68, 0.6)' }}>
+            <CardContent className="p-0">
+              <ScrollArea className="h-64">
+                {eventLogs.length === 0 ? (
+                  <div className="py-8 text-center text-[#B8B0A0]">
+                    <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">{t.noEvents}</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#5A6A5A]/30">
+                    {eventLogs.map((log) => (
+                      <div key={log.id} className="px-4 py-3 hover:bg-[#4F634F]/30 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 ${
+                            log.type === 'error' ? 'bg-[#8B5A5A]' :
+                            log.type === 'warning' ? 'bg-[#B8A060]' :
+                            log.type === 'success' ? 'bg-[#7A9A7A]' :
+                            'bg-[#B8B0A0]'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#E8DCC0]">
+                              {language === 'ar' ? log.messageAr : log.message}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-[#B8B0A0]">
+                              <span>{log.strollerName}</span>
+                              <span>•</span>
+                              <span>{formatTime(log.timestamp)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      {/* Floating Add Button */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-2xl h-14 px-6 shadow-2xl gap-2 bg-[#E8DCC0] hover:bg-[#D8D0C0] text-[#2D3A2B] font-semibold"
+          >
+            <Plus className="w-5 h-5" />
+            {t.addStroller}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="rounded-3xl max-w-sm bg-[#445744] border-[#5A6A5A]">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl text-[#E8DCC0]">{t.addStroller}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="strollerName" className="text-[#E8DCC0]">{t.strollerName}</Label>
+              <Input
+                id="strollerName"
+                value={newStrollerName}
+                onChange={(e) => setNewStrollerName(e.target.value)}
+                placeholder={language === 'ar' ? 'مثال: عربة أحمد' : 'e.g., Baby Stroller 1'}
+                className="rounded-xl h-11 bg-[#4F634F] border-[#5A6A5A] text-[#E8DCC0] placeholder-[#B8B0A0]"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddStroller()}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => setIsAddDialogOpen(false)}
+                className="flex-1 rounded-xl h-11 bg-[#4F634F] hover:bg-[#5A7A5A] text-[#E8DCC0]"
+              >
+                {t.cancel}
+              </Button>
+              <Button
+                onClick={handleAddStroller}
+                disabled={!newStrollerName.trim()}
+                className="flex-1 rounded-xl h-11 bg-[#E8DCC0] hover:bg-[#D8D0C0] text-[#2D3A2B]"
+              >
+                {t.add}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
